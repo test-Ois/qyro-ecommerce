@@ -49,7 +49,7 @@ const variantSchema = new mongoose.Schema({
   images: [{
     url: {
       type: String,
-      required: true
+      default: ""
     },
     type: {
       type: String,
@@ -58,7 +58,7 @@ const variantSchema = new mongoose.Schema({
     },
     publicId: {
       type: String,
-      required: true
+      default: ""
     },
     altText: {
       type: String,

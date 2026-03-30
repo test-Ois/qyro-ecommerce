@@ -176,3 +176,54 @@ exports.deleteSellerProduct = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+/* ========== UPLOAD VARIANT IMAGES (SELLER) ========== */
+exports.uploadSellerVariantImages = async (req, res) => {
+  try {
+    const { id, variantId } = req.params;
+    
+    // Verify product exists and belongs to seller
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    if (product.seller?.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    // Find variant
+    const variantIndex = product.variants.findIndex(v => v._id.toString() === variantId);
+    if (variantIndex === -1) {
+      return res.status(404).json({ message: "Variant not found" });
+    }
+
+    // Build image records from uploaded files
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No images provided" });
+    }
+
+    const uploadedImages = req.files.map((file, index) => ({
+      url: file.path,
+      type: index === 0 ? "main" : "gallery",
+      publicId: file.filename,
+      altText: `${product.name} - ${product.variants[variantIndex].color || product.variants[variantIndex].size} - Image ${index + 1}`
+    }));
+
+    // Add to variant images
+    product.variants[variantIndex].images = [
+      ...(product.variants[variantIndex].images || []),
+      ...uploadedImages
+    ];
+
+    const updated = await product.save();
+
+    res.json({ 
+      message: "Variant images uploaded successfully", 
+      variant: updated.variants[variantIndex] 
+    });
+  } catch (error) {
+    console.error("Upload seller variant images error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -6,7 +6,8 @@ const {
   getSellerProducts,
   addSellerProduct,
   updateSellerProduct,
-  deleteSellerProduct
+  deleteSellerProduct,
+  uploadSellerVariantImages
 } = require("../controllers/sellerController");
 
 const auth = require("../middleware/authMiddleware");
@@ -27,5 +28,8 @@ router.put("/products/:id", auth, seller, upload.uploadMultiple, updateSellerPro
 
 /* ========== DELETE PRODUCT ========== */
 router.delete("/products/:id", auth, seller, deleteSellerProduct);
+
+/* ========== UPLOAD VARIANT IMAGES (NEW) ========== */
+router.post("/products/:id/variants/:variantId/images", auth, seller, upload.uploadMultiple, uploadSellerVariantImages);
 
 module.exports = router;
