@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================= BASE ================= */
+@layer base {
+  body {
+    font-family: "Poppins", "Inter", sans-serif;
+    background-color: #0f0a1e;
+    color: #ffffff;
+    overflow-x: hidden;
+  }
+}
+
+/* ================= COMPONENTS ================= */
+@layer components {
+
+  /* 🔥 PREMIUM BUTTON */
+  .btn-primary {
+    @apply text-black font-semibold px-6 py-2.5 rounded-full 
+           hover:scale-105 transition-all duration-300;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+
+  /* 🔥 GLASS CARD */
+  .card-glass {
+    @apply rounded-[20px] p-4 transition-all duration-300;
+    background: rgba(26, 16, 53, 0.6);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* 🔥 INPUT */
+  .input-dark {
+    @apply w-full px-4 py-3 rounded-full text-sm outline-none;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+  }
+}
+
+/* ================= UTILITIES ================= */
+@layer utilities {
+
+  /* 🔥 GOLD HOVER EFFECT */
+  .gold-hover {
+    @apply hover:bg-yellow-400/10 transition duration-300;
+  }
+
+  .gold-icon {
+    @apply text-gray-400 group-hover:text-yellow-400 
+           group-hover:scale-110 transition;
+  }
+
+  /* 🔥 ICON POP */
+  @keyframes iconPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+    100% { transform: scale(1.1); }
+  }
+
+  .icon-animate:hover {
+    animation: iconPop 0.25s ease;
+  }
+
+  /* 🔥 GLOW */
+  .glow-hover:hover {
+    box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
+  }
+
+  .icon-glow:hover {
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+  }
+
+  /* 🔥 DOT LOADER */
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #E91E63;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* 🔥 FADE IN (SINGLE SOURCE) */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  /* 🔥 SHIMMER (FOR SKELETON) */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.08),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+}

@@ -1,0 +1,91 @@
+/* ================= RESET ================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  @apply bg-[#070014] text-white antialiased;
+  overflow-x: hidden;
+}
+
+/* ================= GLOBAL TRANSITIONS ================= */
+* {
+  transition: background-color 0.25s ease,
+              color 0.25s ease,
+              transform 0.25s ease,
+              opacity 0.25s ease;
+}
+
+/* ================= SHIMMER (FINAL - SINGLE SOURCE) ================= */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.08),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ================= STAGGER / ENTRY ================= */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-stagger {
+  animation: slideUp 0.4s ease forwards;
+}
+
+/* ================= FADE ================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* ================= IMAGE LOADING ================= */
+.blur-load {
+  filter: blur(20px);
+  transition: filter 0.4s ease;
+}
+
+.blur-load.loaded {
+  filter: blur(0);
+}
