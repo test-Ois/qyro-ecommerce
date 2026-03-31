@@ -1,104 +1,35 @@
-const Product = require("../models/Product");
-const Order = require("../models/Order");
-const User = require("../models/User");
-const parseVariants = require("../utils/parseVariants");
+const sellerService = require("../services/sellerService");
+const asyncHandler = require("../utils/asyncHandler");
 
-/* ========== GET SELLER DASHBOARD STATS ========== */
-exports.getSellerStats = async (req, res) => {
-  try {
-    const sellerId = req.user.id;
+exports.getSellerStats = asyncHandler(async (req, res) => {
+  const stats = await sellerService.getSellerStats(req.user.id);
+  res.json(stats);
+});
 
-    const products = await Product.find({ seller: sellerId });
-    const productIds = products.map((p) => p._id.toString());
+exports.getSellerProducts = asyncHandler(async (req, res) => {
+  const products = await sellerService.getSellerProducts(req.user.id);
+  res.json(products);
+});
 
-    const orders = await Order.find({
-      "products.product": { $in: products.map((p) => p._id) }
-    });
+exports.addSellerProduct = asyncHandler(async (req, res) => {
+  const saved = await sellerService.addSellerProduct(req, req.user.id);
+  res.status(201).json(saved);
+});
 
-    let totalRevenue = 0;
+exports.updateSellerProduct = asyncHandler(async (req, res) => {
+  const updated = await sellerService.updateSellerProduct(req.params.id, req, req.user.id);
+  res.json(updated);
+});
 
-    orders.forEach((order) => {
-      order.products.forEach((item) => {
-        if (item.product && productIds.includes(item.product.toString())) {
-          const product = products.find(
-            (p) => p._id.toString() === item.product.toString()
-          );
+exports.deleteSellerProduct = asyncHandler(async (req, res) => {
+  const result = await sellerService.deleteSellerProduct(req.params.id, req.user.id);
+  res.json(result);
+});
 
-          if (product) {
-            totalRevenue += product.price * item.quantity;
-          }
-        }
-      });
-    });
-
-    const seller = await User.findById(sellerId);
-    const commissionRate = seller?.commissionRate || 0;
-    const commissionAmount = (totalRevenue * commissionRate) / 100;
-    const netEarnings = totalRevenue - commissionAmount;
-
-    res.json({
-      totalProducts: products.length,
-      totalOrders: orders.length,
-      totalRevenue,
-      commissionRate,
-      commissionAmount,
-      netEarnings
-    });
-  } catch (error) {
-    console.error("Seller stats error:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* ========== GET SELLER PRODUCTS ========== */
-exports.getSellerProducts = async (req, res) => {
-  try {
-    const products = await Product.find({ seller: req.user.id });
-    res.json(products);
-  } catch (error) {
-    console.error("Get seller products error:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* ========== ADD SELLER PRODUCT ========== */
-exports.addSellerProduct = async (req, res) => {
-  try {
-    // Handle multiple images
-    let images = [];
-    if (req.files && req.files.length > 0) {
-      images = req.files.map((file, index) => ({
-        url: file.path,
-        type: index === 0 ? "main" : "gallery", // First image is main
-        publicId: file.filename,
-        altText: `${req.body.name} - Image ${index + 1}`
-      }));
-    }
-
-    // Fallback to single image for backward compatibility
-    const legacyImage = images.length > 0 ? images[0].url : "";
-
-    const parsedVariants = parseVariants(req.body.variants, legacyImage);
-
-    const product = new Product({
-      name: req.body.name,
-      price: req.body.price,
-      description: req.body.description,
-      category: req.body.category,
-      stock: req.body.stock || 0,
-      image: legacyImage, // Keep for backward compatibility
-      images: images,
-      seller: req.user.id,
-      variants: parsedVariants
-    });
-
-    const saved = await product.save();
-    res.status(201).json(saved);
-  } catch (error) {
-    console.error("Add seller product error:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+exports.uploadSellerVariantImages = asyncHandler(async (req, res) => {
+  const variant = await sellerService.uploadSellerVariantImages(req.params.id, req.params.variantId, req, req.user.id);
+  res.json({ message: "Variant images uploaded successfully", variant });
+});
 
 /* ========== UPDATE SELLER PRODUCT ========== */
 exports.updateSellerProduct = async (req, res) => {

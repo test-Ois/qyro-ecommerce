@@ -29,9 +29,29 @@ const userSchema = new mongoose.Schema({
     default: "user"
   },
 
-  isVerified: {
+  // Seller approval status
+  isApproved: {
     type: Boolean,
     default: false
+  },
+
+  // Seller-specific fields
+  shopName: {
+    type: String,
+    default: ""
+  },
+
+  shopDescription: {
+    type: String,
+    default: ""
+  },
+
+  // Commission rate for sellers (percentage)
+  commissionRate: {
+    type: Number,
+    default: 10, // 10% default commission
+    min: 0,
+    max: 100
   },
 
   resetPasswordToken: {
@@ -48,6 +68,17 @@ const userSchema = new mongoose.Schema({
 
   otpExpire: {
     type: Date
+  },
+
+  // Refresh token for extended sessions
+  refreshToken: {
+    type: String,
+    default: null
+  },
+
+  refreshTokenExpire: {
+    type: Date,
+    default: null
   },
 
   // Wishlist array

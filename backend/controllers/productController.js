@@ -1,85 +1,51 @@
 const productService = require("../services/productService");
+const asyncHandler = require("../utils/asyncHandler");
 
-/* ================= GET ALL PRODUCTS ================= */
-exports.getProducts = async (req, res) => {
-  try {
-    const products = await productService.getAllProducts();
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
+exports.getProducts = asyncHandler(async (req, res) => {
+  const products = await productService.getAllProducts();
+  res.json(products);
+});
 
-/* ================= GET PRODUCT BY ID ================= */
-exports.getProductById = async (req, res) => {
-  try {
-    const product = await productService.getProductById(req.params.id);
+exports.getProductById = asyncHandler(async (req, res) => {
+  const product = await productService.getProductById(req.params.id);
+  res.json(product);
+});
 
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
+exports.addProduct = asyncHandler(async (req, res) => {
+  const saved = await productService.createProduct(req, req.user.id);
+  res.status(201).json(saved);
+});
 
-    res.json(product);
-  } catch (error) {
-    console.error("Get Product By ID Error:", error.message);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* ================= ADD PRODUCT ================= */
-exports.addProduct = async (req, res) => {
-  try {
-    const saved = await productService.createProduct(req, req.user.id);
-    res.status(201).json(saved);
-  } catch (error) {
-    console.error("Add Product Error:", error.stack || error.message || error);
-    res.status(500).json({ message: "Product create failed" });
-  }
-};
-
-/* ================= UPDATE PRODUCT ================= */
-exports.updateProduct = async (req, res) => {
-  try {
-    const updated = await productService.updateProduct(req.params.id, req);
-    res.json(updated);
-  } catch (error) {
-    console.error("Update Product Error:", error.message);
-    if (error.message === "Product not found") {
-      return res.status(404).json({ message: "Product not found" });
-    }
-    res.status(500).json({ message: "Server error" });
-  }
-};;
+exports.updateProduct = asyncHandler(async (req, res) => {
+  const updated = await productService.updateProduct(req.params.id, req);
+  res.json(updated);
+});
 
 /* ================= DELETE PRODUCT ================= */
-exports.deleteProduct = async (req, res) => {
-  try {
-    await productService.deleteProduct(req.params.id);
-    res.json({ message: "Product deleted" });
-  } catch (error) {
-    console.error("Delete Product Error:", error.message);
-    if (error.message === "Product not found") {
-      return res.status(404).json({ message: "Product not found" });
-    }
-    res.status(500).json({ message: "Server error" });
-  }
-};
+exports.deleteProduct = asyncHandler(async (req, res) => {
+  await productService.deleteProduct(req.params.id, req.user.id);
+  res.json({ message: "Product deleted" });
+});
 
 /* ================= UPLOAD VARIANT IMAGES ================= */
-exports.uploadVariantImages = async (req, res) => {
-  try {
-    const { id, variantId } = req.params;
-    const variant = await productService.uploadVariantImages(id, variantId, req.files);
+exports.uploadVariantImages = asyncHandler(async (req, res) => {
+  const { id, variantId } = req.params;
+  const variant = await productService.uploadVariantImages(id, variantId, req.files);
+  res.json({ message: "Variant images uploaded successfully", variant });
+});
 
-    res.json({ message: "Variant images uploaded successfully", variant });
-  } catch (error) {
-    console.error("Upload Variant Images Error:", error.message);
-    if (error.message === "Product not found" || error.message === "Variant not found") {
-      return res.status(404).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Server error" });
-  }
-};
+/* ================= ADD REVIEW ================= */
+exports.addReview = asyncHandler(async (req, res) => {
+  const { rating, comment } = req.body;
+  const product = await productService.addReview(req.params.id, req.user, rating, comment);
+  res.status(201).json({ message: "Review added", product });
+});
+
+/* ================= DELETE REVIEW ================= */
+exports.deleteReview = asyncHandler(async (req, res) => {
+  await productService.deleteReview(req.params.id, req.params.reviewId);
+  res.json({ message: "Review deleted" });
+});
 
 /* ================= ADD REVIEW ================= */
 exports.addReview = async (req, res) => {

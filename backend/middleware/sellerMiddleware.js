@@ -1,17 +1,20 @@
 // Middleware to check if user is an approved seller
+const ApiError = require("../utils/apiError");
 
 module.exports = (req, res, next) => {
 
-  if (req.user.role !== "seller") {
-    return res.status(403).json({
-      message: "Access denied — sellers only"
-    });
+  // SECURITY: Verify user object exists from auth middleware
+  if (!req.user) {
+    throw new ApiError(401, "User not authenticated");
   }
 
+  if (req.user.role !== "seller") {
+    throw new ApiError(403, "Access denied - seller account required");
+  }
+
+  // SECURITY: Check seller approval status (edge case handling)
   if (!req.user.isApproved) {
-    return res.status(403).json({
-      message: "Your seller account is pending admin approval"
-    });
+    throw new ApiError(403, "Seller account pending admin approval - feature access restricted");
   }
 
   next();

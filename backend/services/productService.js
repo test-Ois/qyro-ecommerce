@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const parseVariants = require("../utils/parseVariants");
 const { deleteProductImages } = require("../utils/imageUtils");
+const ApiError = require("../utils/apiError");
 
 const buildImageRecords = (files, baseName) => {
   if (!files || !files.length) return [];
@@ -27,10 +28,17 @@ exports.getAllProducts = async () => {
 };
 
 exports.getProductById = async (id) => {
-  return await Product.findById(id);
+  const product = await Product.findById(id);
+  if (!product) throw new ApiError(404, "Product not found");
+  return product;
 };
 
 exports.createProduct = async (req, userId) => {
+  // SECURITY: Always ensure seller ID is set from authenticated user
+  if (!userId) {
+    throw new ApiError(401, "User authentication required");
+  }
+
   const productImages = buildImageRecords(req.files, req.body.name || "Product");
   const legacyImage = productImages.length > 0 ? productImages[0].url : "";
 
@@ -75,7 +83,7 @@ exports.createProduct = async (req, userId) => {
     images: productImages,
     stock: req.body.stock || 0,
     variants: parsedVariants,
-    seller: userId,
+    seller: userId, // SECURITY: Set from authenticated user ID, not request body
     isBanner: req.body.isBanner === "true",
     isSideBanner: req.body.isSideBanner === "true",
     isDeal: req.body.isDeal === "true",
@@ -87,7 +95,13 @@ exports.createProduct = async (req, userId) => {
 
 exports.updateProduct = async (id, req) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new ApiError(404, "Product not found");
+
+  // SECURITY: Strict owner validation - defense in depth
+  // Even with middleware, validate ownership in service layer
+  if (product.seller.toString() !== req.user.id) {
+    throw new ApiError(403, "Access denied - you can only modify your own products");
+  }
 
   const productImages = buildImageRecords(req.files, req.body.name || product.name);
   const legacyImage = productImages.length > 0 ? productImages[0].url : "";
@@ -150,9 +164,14 @@ exports.updateProduct = async (id, req) => {
   return updated;
 };
 
-exports.deleteProduct = async (id) => {
+exports.deleteProduct = async (id, userId) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new ApiError(404, "Product not found");
+
+  // SECURITY: Strict owner validation - defense in depth
+  if (product.seller.toString() !== userId) {
+    throw new ApiError(403, "Access denied - you can only delete your own products");
+  }
 
   await deleteProductImages(product);
   return await Product.findByIdAndDelete(id);
@@ -160,10 +179,10 @@ exports.deleteProduct = async (id) => {
 
 exports.uploadVariantImages = async (id, variantId, files) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("Product not found");
+  if (!product) throw new ApiError(404, "Product not found");
 
   const variantIndex = product.variants.findIndex(v => v._id.toString() === variantId);
-  if (variantIndex === -1) throw new Error("Variant not found");
+  if (variantIndex === -1) throw new ApiError(404, "Variant not found");
 
   let variantImages = buildImageRecords(files, `${product.name} - ${product.variants[variantIndex].color || product.variants[variantIndex].size}`);
 
@@ -186,7 +205,7 @@ exports.addReview = async (id, user, rating, comment) => {
   if (!product) throw new Error("Product not found");
 
   const alreadyReviewed = product.reviews.find((r) => r.user.toString() === user.id.toString());
-  if (alreadyReviewed) throw new Error("Product already reviewed");
+  if (alreadyReviewed) throw new ApiError(400, "Product already reviewed");
 
   const review = {
     user: user.id,
@@ -206,7 +225,8 @@ exports.addReview = async (id, user, rating, comment) => {
 exports.deleteReview = async (id, reviewId) => {
   const product = await Product.findById(id);
   if (!product) throw new Error("Product not found");
-
+  const reviewExists = product.reviews.some((r) => r._id.toString() === reviewId);
+  if (!reviewExists) throw new ApiError(404, "Review not found");
   product.reviews = product.reviews.filter((r) => r._id.toString() !== reviewId);
   product.numReviews = product.reviews.length;
   product.averageRating =

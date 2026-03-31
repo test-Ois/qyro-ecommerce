@@ -10,21 +10,20 @@ const {
 } = require("../controllers/orderController");
 
 const auth = require("../middleware/authMiddleware");
-const admin = require("../middleware/adminMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
+const sellerMiddleware = require("../middleware/sellerMiddleware");
+const ownerMiddleware = require("../middleware/ownerMiddleware");
 
-/* CREATE ORDER */
+/* ================= USER ================= */
 router.post("/", auth, createOrder);
-
-/* GET MY ORDERS - User */
 router.get("/my", auth, getMyOrders);
+router.put("/:id/cancel", auth, ownerMiddleware("order"), cancelMyOrder);
 
-/* GET ALL ORDERS - Admin */
-router.get("/", auth, admin, getAllOrders);
+/* ================= SELLER ================= */
+router.get("/seller", auth, sellerMiddleware, getMyOrders); // Orders for seller's products
 
-/* UPDATE ORDER STATUS - Admin */
-router.put("/:id/status", auth, admin, updateOrderStatus);
-
-/* CANCEL MY ORDER - User */
-router.put("/:id/cancel", auth, cancelMyOrder);
+/* ================= ADMIN ================= */
+router.get("/", auth, roleMiddleware("admin"), getAllOrders);
+router.put("/:id/status", auth, roleMiddleware("admin"), updateOrderStatus);
 
 module.exports = router;

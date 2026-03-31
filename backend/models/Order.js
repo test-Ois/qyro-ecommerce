@@ -7,6 +7,12 @@ const orderSchema = new mongoose.Schema(
       ref: "User"
     },
 
+    // For multi-seller orders, track seller
+    seller: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+
     products: [
       {
         product: {

@@ -1,0 +1,13 @@
+{
+  "name": "qyro-root",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\" \"npm run admin\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "admin": "cd admin-panel && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

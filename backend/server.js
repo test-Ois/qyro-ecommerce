@@ -5,8 +5,10 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
+const logger = require("./utils/logger");
 
 /* IMPORT DATABASE */
 const connectDB = require("./config/db");
@@ -32,8 +34,14 @@ const server = http.createServer(app);
 /* INITIALIZE SOCKET.IO */
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: [
+      "http://localhost:3000",  // Frontend
+      "http://localhost:3001",  // Admin panel
+      process.env.PRODUCTION_FRONTEND_URL || "",
+      process.env.PRODUCTION_ADMIN_URL || ""
+    ].filter(Boolean),
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -46,8 +54,42 @@ app.use((req, res, next) => {
 /* CONNECT DATABASE */
 connectDB();
 
+/**
+ * PRODUCTION SECURITY CONFIGURATION
+ * CORS: Only allow specified origins (frontend & admin panel)
+ * Morgan: Log all HTTP requests for security auditing
+ */
+
+// CORS Configuration: Whitelist only trusted origins
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000",      // Frontend dev
+      "http://localhost:3001",      // Admin panel dev
+      process.env.PRODUCTION_FRONTEND_URL || "",
+      process.env.PRODUCTION_ADMIN_URL || ""
+    ].filter(Boolean);
+
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+};
+
 /* GLOBAL MIDDLEWARE */
-app.use(cors());
+app.use(cors(corsOptions)); // CORS must be before other middleware
+
+// HTTP Request Logging (Morgan)
+// Log requests in 'combined' format by default, only log errors in production
+const morganFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
+app.use(morgan(morganFormat));
+
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -62,6 +104,10 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/chat", chatRoutes); // New
 app.use("/api/payment", paymentRoutes);
+
+/* GLOBAL ERROR HANDLER */
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
 
 /* SOCKET.IO CONNECTION */
 io.on("connection", (socket) => {

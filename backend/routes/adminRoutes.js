@@ -10,7 +10,7 @@ const admin = require("../middleware/adminMiddleware");
 
 /* ========== ADMIN STATS (existing) ========== */
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", auth, admin, async (req, res) => {
 
   try {
 
@@ -29,7 +29,7 @@ router.get("/stats", async (req, res) => {
 
 /* ========== TOP PRODUCTS (existing) ========== */
 
-router.get("/top-products", async (req, res) => {
+router.get("/top-products", auth, admin, async (req, res) => {
 
   try {
 
@@ -74,7 +74,7 @@ router.get("/top-products", async (req, res) => {
 
 /* ========== SALES ANALYTICS (existing) ========== */
 
-router.get("/sales-analytics", async (req, res) => {
+router.get("/sales-analytics", auth, admin, async (req, res) => {
 
   try {
 
