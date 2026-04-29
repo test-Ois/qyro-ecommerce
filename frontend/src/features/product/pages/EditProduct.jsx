@@ -2,6 +2,33 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../../../services/api";
 
+const inputClass =
+  "w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20";
+
+const createVariant = () => ({
+  size: "",
+  color: "",
+  price: "",
+  stock: "",
+  sku: "",
+  images: [],
+  existingImages: []
+});
+
+const normalizeVariantImages = (images, fallbackImage) => {
+  const normalizedImages = Array.isArray(images)
+    ? images
+        .map((image) => (typeof image === "string" ? image : image?.url || ""))
+        .filter(Boolean)
+    : [];
+
+  if (normalizedImages.length > 0) {
+    return normalizedImages;
+  }
+
+  return fallbackImage ? [fallbackImage] : [];
+};
+
 function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -20,7 +47,7 @@ function EditProduct() {
   const [stock, setStock] = useState("");
 
   const [variants, setVariants] = useState([
-    { size: "", color: "", price: "", stock: "", sku: "" }
+    createVariant()
   ]);
 
   useEffect(() => {
@@ -57,9 +84,13 @@ function EditProduct() {
               color: variant.color || "",
               price: variant.price || "",
               stock: variant.stock || "",
-              sku: variant.sku || ""
+              sku: variant.sku || "",
+              images: [],
+              existingImages: normalizeVariantImages(variant.images, variant.image)
             }))
           );
+        } else {
+          setVariants([createVariant()]);
         }
       } catch (error) {
         console.error("Fetch product error:", error);
@@ -78,20 +109,27 @@ function EditProduct() {
     setVariants(updatedVariants);
   };
 
+  const handleVariantImages = (index, files) => {
+    const updatedVariants = [...variants];
+    updatedVariants[index].images = Array.from(files || []);
+    setVariants(updatedVariants);
+  };
+
   const addVariantField = () => {
-    setVariants([
-      ...variants,
-      { size: "", color: "", price: "", stock: "", sku: "" }
-    ]);
+    setVariants([...variants, createVariant()]);
   };
 
   const removeVariantField = (index) => {
     const updatedVariants = variants.filter((_, i) => i !== index);
-    setVariants(
-      updatedVariants.length > 0
-        ? updatedVariants
-        : [{ size: "", color: "", price: "", stock: "", sku: "" }]
+    setVariants(updatedVariants.length > 0 ? updatedVariants : [createVariant()]);
+  };
+
+  const removeExistingVariantImage = (variantIndex, imageIndex) => {
+    const updatedVariants = [...variants];
+    updatedVariants[variantIndex].existingImages = updatedVariants[variantIndex].existingImages.filter(
+      (_, currentIndex) => currentIndex !== imageIndex
     );
+    setVariants(updatedVariants);
   };
 
   const handleImageChange = (e) => {
@@ -145,15 +183,31 @@ function EditProduct() {
             variant.color.trim() ||
             variant.price !== "" ||
             variant.stock !== "" ||
-            variant.sku.trim()
+            variant.sku.trim() ||
+            variant.existingImages.length > 0 ||
+            variant.images.length > 0
         )
-        .map((variant) => ({
-          size: variant.size.trim(),
-          color: variant.color.trim(),
-          price: Number(variant.price) || 0,
-          stock: Number(variant.stock) || 0,
-          sku: variant.sku.trim()
-        }));
+        .map((variant, index) => {
+          const variantPrice = Number(variant.price);
+          const variantStock = Number(variant.stock || 0);
+
+          if (!Number.isFinite(variantPrice) || variantPrice < 0) {
+            throw new Error(`Variant ${index + 1} price must be valid.`);
+          }
+
+          if (!Number.isFinite(variantStock) || variantStock < 0) {
+            throw new Error(`Variant ${index + 1} stock must be valid.`);
+          }
+
+          return {
+            size: variant.size.trim(),
+            color: variant.color.trim(),
+            price: variantPrice,
+            stock: variantStock,
+            sku: variant.sku.trim(),
+            images: variant.existingImages
+          };
+        });
 
       const formData = new FormData();
       formData.append("name", name);
@@ -163,9 +217,14 @@ function EditProduct() {
       formData.append("stock", stock);
       formData.append("variants", JSON.stringify(cleanedVariants));
 
-      // Append new images
       images.forEach((img) => {
         formData.append("images", img);
+      });
+
+      variants.forEach((variant, index) => {
+        variant.images.forEach((file) => {
+          formData.append(`variantImages_${index}`, file);
+        });
       });
 
       await API.put(`/seller/products/${id}`, formData);
@@ -331,13 +390,13 @@ function EditProduct() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                     <input
                       type="text"
                       placeholder="Size"
                       value={variant.size}
                       onChange={(e) => handleVariantChange(index, "size", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -345,7 +404,7 @@ function EditProduct() {
                       placeholder="Color"
                       value={variant.color}
                       onChange={(e) => handleVariantChange(index, "color", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -353,7 +412,7 @@ function EditProduct() {
                       placeholder="Variant Price"
                       value={variant.price}
                       onChange={(e) => handleVariantChange(index, "price", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -361,7 +420,7 @@ function EditProduct() {
                       placeholder="Variant Stock"
                       value={variant.stock}
                       onChange={(e) => handleVariantChange(index, "stock", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -369,8 +428,53 @@ function EditProduct() {
                       placeholder="SKU"
                       value={variant.sku}
                       onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-gray-300">Variant Images</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleVariantImages(index, e.target.files)}
+                      className="mt-2 w-full rounded-xl border border-dashed border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white file:mr-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-pink-500 file:to-purple-600 file:px-4 file:py-2 file:text-white"
+                    />
+
+                    {variant.existingImages?.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {variant.existingImages.map((image, imageIndex) => (
+                          <div key={`${image}-${imageIndex}`} className="relative">
+                            <img
+                              src={image}
+                              alt={`Variant ${index + 1} existing ${imageIndex + 1}`}
+                              className="h-16 w-16 rounded-lg object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeExistingVariantImage(index, imageIndex)}
+                              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white"
+                            >
+                              x
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {variant.images.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {variant.images.map((file, imageIndex) => (
+                          <img
+                            key={`${file.name}-${imageIndex}`}
+                            src={URL.createObjectURL(file)}
+                            alt={`Variant ${index + 1} new ${imageIndex + 1}`}
+                            className="h-16 w-16 rounded-lg object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

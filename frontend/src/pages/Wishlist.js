@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../services/api";
@@ -10,39 +10,41 @@ function Wishlist() {
 
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
   document.title = "Qyro - My Wishlist";
 }, []);
 
-  /* Redirect to login if not logged in */
+  const fetchWishlist = useCallback(async () => {
+    setError("");
+
+    try {
+      const res = await API.get("/wishlist");
+      setWishlist(res.data);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Could not load your wishlist.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
-    fetchWishlist();
-  }, [user]);
 
-  /* Fetch wishlist products from backend */
-  const fetchWishlist = async () => {
-    try {
-      const res = await API.get("/wishlist");
-      setWishlist(res.data);
-    } catch (error) {
-      console.error("Fetch wishlist error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchWishlist();
+  }, [user, navigate, fetchWishlist]);
 
   /* Remove product from wishlist */
   const removeFromWishlist = async (productId) => {
     try {
       await API.delete(`/wishlist/${productId}`);
       setWishlist(prev => prev.filter(p => p._id !== productId));
-    } catch (error) {
-      console.error("Remove wishlist error:", error);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Could not remove this item from your wishlist.");
     }
   };
 
@@ -63,6 +65,8 @@ function Wishlist() {
           <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
         </svg>
       </h2>
+
+      {error && <p style={{ color: "#dc2626", marginTop: "12px" }}>{error}</p>}
 
       {wishlist.length === 0 ? (
 

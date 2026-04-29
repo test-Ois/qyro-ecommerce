@@ -41,11 +41,21 @@ exports.validateRegister = (data) => {
     email: emailSchema,
     password: passwordSchema,
     role: Joi.string()
-      .valid("user", "seller")
-      .required()
+      .valid("user", "seller", "admin")
+      .default("user")
       .messages({
-        "any.only": "Role must be 'user' or 'seller'"
-      })
+        "any.only": "Role must be 'user', 'seller', or 'admin'"
+      }),
+    shopName: Joi.string()
+      .max(100)
+      .allow("")
+      .optional()
+      .trim(),
+    shopDescription: Joi.string()
+      .max(500)
+      .allow("")
+      .optional()
+      .trim()
   });
 
   return schema.validate(data, { abortEarly: false });

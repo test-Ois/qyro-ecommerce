@@ -8,9 +8,6 @@ function Checkout() {
   const navigate = useNavigate();
   const { cart, removeFromCart, updateQuantity } = useContext(CartContext);
 
-  console.log("CART:", cart); // Debugging log
-
-  //Safe reduce with empty cart check
   const computedTotal = (cart || []).reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
@@ -23,7 +20,7 @@ function Checkout() {
     setLoading(true);
 
     const token = localStorage.getItem("token");
-// Token check before placing order
+
     if (!token || token === "null") {
       alert("Please login first");
       navigate("/login");
@@ -67,9 +64,8 @@ function Checkout() {
         alert(data.message);
       }
 
-    } catch (error) {
+    } catch {
       alert("Something went wrong");
-      console.error(error);
     } finally {
       setLoading(false);
     }

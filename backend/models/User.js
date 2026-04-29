@@ -22,36 +22,15 @@ const userSchema = new mongoose.Schema({
     minlength: 6
   },
 
-  // Added seller role
   role: {
     type: String,
-    enum: ["user", "admin", "seller"],
+    enum: ["user", "seller", "admin"],
     default: "user"
   },
 
-  // Seller approval status
-  isApproved: {
+  isBlocked: {
     type: Boolean,
     default: false
-  },
-
-  // Seller-specific fields
-  shopName: {
-    type: String,
-    default: ""
-  },
-
-  shopDescription: {
-    type: String,
-    default: ""
-  },
-
-  // Commission rate for sellers (percentage)
-  commissionRate: {
-    type: Number,
-    default: 10, // 10% default commission
-    min: 0,
-    max: 100
   },
 
   resetPasswordToken: {
@@ -98,7 +77,9 @@ const userSchema = new mongoose.Schema({
   // Platform commission percentage deducted from seller earnings
   commissionRate: {
     type: Number,
-    default: 10 // 10% default commission
+    default: 10,
+    min: 0,
+    max: 100
   },
 
   // Seller shop name

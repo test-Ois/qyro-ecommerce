@@ -27,6 +27,11 @@ exports.getAllOrders = asyncHandler(async (req, res) => {
   res.json(orders);
 });
 
+exports.getOrderById = asyncHandler(async (req, res) => {
+  const order = await orderService.getOrderById(req.params.id);
+  res.json(order);
+});
+
 /* ========== UPDATE ORDER STATUS - Admin ========== */
 exports.updateOrderStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;

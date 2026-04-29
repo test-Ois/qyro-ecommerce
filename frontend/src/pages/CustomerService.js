@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useContext } from "react";
+import { useCallback, useState, useEffect, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../services/api";
@@ -27,6 +27,29 @@ function CustomerService() {
 
   const messagesEndRef = useRef(null);
 
+  const loadChatHistory = useCallback(async () => {
+    try {
+      const res = await API.get("/chat/history");
+
+      if (res.data.messages.length > 0) {
+        setMessages(res.data.messages);
+        return;
+      }
+
+      setMessages([{
+        role: "assistant",
+        content: `Hello${user ? `, ${user.name}` : ""}! I'm Qyro AI assistant.\n\nI can help you with orders, returns, payments, delivery and more.\n\nHow can I help you today?`
+      }]);
+    } catch {
+      setMessages([{
+        role: "assistant",
+        content: "Hello! I'm Qyro AI assistant. How can I help you today?"
+      }]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
   document.title = "Qyro Customer Service";
 }, []);
@@ -36,43 +59,20 @@ function CustomerService() {
     if (!authLoading && !user) {
       navigate("/login");
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
   // Load chat history on mount
   useEffect(() => {
     if (user) {
       loadChatHistory();
     }
-  }, [user]);
+  }, [user, loadChatHistory]);
 
   // Auto scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* Load chat history from backend */
-  const loadChatHistory = async () => {
-    try {
-      const res = await API.get("/chat/history");
-      if (res.data.messages.length > 0) {
-        setMessages(res.data.messages);
-      } else {
-        // Show welcome message if no history
-        setMessages([{
-          role: "assistant",
-          content: `Hello${user ? `, ${user.name}` : ""}! 👋 I'm Qyro AI assistant.\n\nI can help you with orders, returns, payments, delivery and more.\n\nHow can I help you today?`
-        }]);
-      }
-    } catch (error) {
-      console.error("Load chat history error:", error);
-      setMessages([{
-        role: "assistant",
-        content: "Hello! 👋 I'm Qyro AI assistant. How can I help you today?"
-      }]);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
 
   /* Send message — now calls backend which calls Gemini securely */
   const sendMessage = async (text) => {
@@ -103,8 +103,7 @@ function CustomerService() {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-    } catch (error) {
-      console.error("Send message error:", error);
+    } catch {
       setMessages(prev => [...prev, {
         role: "assistant",
         content: "Sorry, I'm having trouble connecting. Please try again or contact support@qyro.com"
@@ -124,8 +123,11 @@ function CustomerService() {
         role: "assistant",
         content: "Chat history cleared. How can I help you today?"
       }]);
-    } catch (error) {
-      console.error("Clear chat error:", error);
+    } catch {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I couldn't clear the chat right now. Please try again."
+      }]);
     }
   };
 

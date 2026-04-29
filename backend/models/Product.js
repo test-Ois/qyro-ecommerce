@@ -26,6 +26,11 @@ const reviewSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const variantSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
   size: {
     type: String,
     default: ""
@@ -47,23 +52,7 @@ const variantSchema = new mongoose.Schema({
     default: "" // Keep for backward compatibility
   },
   images: [{
-    url: {
-      type: String,
-      default: ""
-    },
-    type: {
-      type: String,
-      enum: ["main", "gallery"],
-      default: "gallery"
-    },
-    publicId: {
-      type: String,
-      default: ""
-    },
-    altText: {
-      type: String,
-      default: ""
-    }
+    type: String
   }],
   sku: {
     type: String,

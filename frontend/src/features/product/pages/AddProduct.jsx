@@ -1,6 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../../services/api";
+
+const inputClass =
+  "w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20";
+
+const createVariant = () => ({
+  size: "",
+  color: "",
+  price: "",
+  stock: "",
+  sku: "",
+  images: []
+});
 
 function AddProduct() {
   const navigate = useNavigate();
@@ -14,10 +26,16 @@ function AddProduct() {
   const [stock, setStock] = useState("");
 
   const [variants, setVariants] = useState([
-    { size: "", color: "", price: "", stock: "", sku: "" }
+    { size: "", color: "", price: "", stock: "", sku: "", images: [] }
   ]);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [previews]);
 
   const handleVariantChange = (index, field, value) => {
     const updatedVariants = [...variants];
@@ -25,54 +43,53 @@ function AddProduct() {
     setVariants(updatedVariants);
   };
 
+  const handleVariantImages = (index, files) => {
+    const updatedVariants = [...variants];
+    updatedVariants[index].images = Array.from(files || []);
+    setVariants(updatedVariants);
+  };
+
   const addVariantField = () => {
-    setVariants([
-      ...variants,
-      { size: "", color: "", price: "", stock: "", sku: "" }
-    ]);
+    setVariants([...variants, createVariant()]);
   };
 
   const removeVariantField = (index) => {
     const updatedVariants = variants.filter((_, i) => i !== index);
-    setVariants(
-      updatedVariants.length > 0
-        ? updatedVariants
-        : [{ size: "", color: "", price: "", stock: "", sku: "" }]
-    );
+    setVariants(updatedVariants.length > 0 ? updatedVariants : [createVariant()]);
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files || []);
 
-    // Limit to 10 images
-    const newFiles = files.slice(0, 10 - images.length);
-    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    if (files.length === 0) {
+      return;
+    }
 
-    setImages(prev => [...prev, ...newFiles]);
-    setPreviews(prev => [...prev, ...newPreviews]);
+    const newFiles = files.slice(0, Math.max(0, 10 - images.length));
+    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+
+    setImages((prev) => [...prev, ...newFiles]);
+    setPreviews((prev) => [...prev, ...newPreviews]);
   };
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => {
-      // Revoke the object URL to free memory
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
     });
   };
 
   const resetForm = () => {
+    previews.forEach((url) => URL.revokeObjectURL(url));
     setName("");
     setPrice("");
     setDescription("");
     setCategory("");
     setStock("");
-    // Clean up object URLs
-    previews.forEach(url => URL.revokeObjectURL(url));
     setImages([]);
     setPreviews([]);
-    setVariants([{ size: "", color: "", price: "", stock: "", sku: "" }]);
+    setVariants([createVariant()]);
   };
 
   const submitHandler = async (e) => {
@@ -83,7 +100,6 @@ function AddProduct() {
 
       if (images.length === 0) {
         alert("At least one product image is required");
-        setLoading(false);
         return;
       }
 
@@ -94,15 +110,30 @@ function AddProduct() {
             variant.color.trim() ||
             variant.price !== "" ||
             variant.stock !== "" ||
-            variant.sku.trim()
+            variant.sku.trim() ||
+            variant.images.length > 0
         )
-        .map((variant) => ({
-          size: variant.size.trim(),
-          color: variant.color.trim(),
-          price: Number(variant.price) || 0,
-          stock: Number(variant.stock) || 0,
-          sku: variant.sku.trim()
-        }));
+        .map((variant, index) => {
+          const variantPrice = Number(variant.price);
+          const variantStock = Number(variant.stock || 0);
+
+          if (!Number.isFinite(variantPrice) || variantPrice < 0) {
+            throw new Error(`Variant ${index + 1} price must be valid.`);
+          }
+
+          if (!Number.isFinite(variantStock) || variantStock < 0) {
+            throw new Error(`Variant ${index + 1} stock must be valid.`);
+          }
+
+          return {
+            size: variant.size.trim(),
+            color: variant.color.trim(),
+            price: variantPrice,
+            stock: variantStock,
+            sku: variant.sku.trim(),
+            images: []
+          };
+        });
 
       const formData = new FormData();
       formData.append("name", name.trim());
@@ -110,11 +141,16 @@ function AddProduct() {
       formData.append("description", description.trim());
       formData.append("category", category.trim());
       formData.append("stock", stock);
-      // Append multiple images
-      images.forEach((img, index) => {
+      images.forEach((img) => {
         formData.append("images", img);
       });
       formData.append("variants", JSON.stringify(cleanedVariants));
+
+      variants.forEach((variant, index) => {
+        variant.images.forEach((file) => {
+          formData.append(`variantImages_${index}`, file);
+        });
+      });
 
       await API.post("/seller/products", formData);
 
@@ -123,7 +159,7 @@ function AddProduct() {
       navigate("/seller-dashboard");
     } catch (error) {
       console.error("Add product error:", error);
-      alert(error?.response?.data?.message || "Failed to add product");
+      alert(error?.response?.data?.message || error.message || "Failed to add product");
     } finally {
       setLoading(false);
     }
@@ -269,13 +305,13 @@ function AddProduct() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                     <input
                       type="text"
                       placeholder="Size"
                       value={variant.size}
                       onChange={(e) => handleVariantChange(index, "size", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -283,7 +319,7 @@ function AddProduct() {
                       placeholder="Color"
                       value={variant.color}
                       onChange={(e) => handleVariantChange(index, "color", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -291,7 +327,7 @@ function AddProduct() {
                       placeholder="Variant Price"
                       value={variant.price}
                       onChange={(e) => handleVariantChange(index, "price", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -299,7 +335,7 @@ function AddProduct() {
                       placeholder="Variant Stock"
                       value={variant.stock}
                       onChange={(e) => handleVariantChange(index, "stock", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
 
                     <input
@@ -307,8 +343,32 @@ function AddProduct() {
                       placeholder="SKU"
                       value={variant.sku}
                       onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
-                      className="w-full rounded-xl border border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20"
+                      className={inputClass}
                     />
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-gray-300">Variant Images</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => handleVariantImages(index, e.target.files)}
+                      className="mt-2 w-full rounded-xl border border-dashed border-purple-800/50 bg-[#1a0933] px-4 py-3 text-white file:mr-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-pink-500 file:to-purple-600 file:px-4 file:py-2 file:text-white"
+                    />
+
+                    {variant.images.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        {variant.images.map((file, imageIndex) => (
+                          <img
+                            key={`${file.name}-${imageIndex}`}
+                            src={URL.createObjectURL(file)}
+                            alt={`Variant ${index + 1} ${imageIndex + 1}`}
+                            className="h-16 w-16 rounded-lg object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

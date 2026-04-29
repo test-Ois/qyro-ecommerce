@@ -5,14 +5,15 @@ const {
   createOrder,
   getMyOrders,
   getAllOrders,
+  getOrderById,
   updateOrderStatus,
   cancelMyOrder
 } = require("../controllers/orderController");
 
-const auth = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
-const sellerMiddleware = require("../middleware/sellerMiddleware");
-const ownerMiddleware = require("../middleware/ownerMiddleware");
+const auth = require("../middlewares/authMiddleware");
+const roleMiddleware = require("../middlewares/roleMiddleware");
+const sellerMiddleware = require("../middlewares/sellerMiddleware");
+const ownerMiddleware = require("../middlewares/ownerMiddleware");
 
 /* ================= USER ================= */
 router.post("/", auth, createOrder);
@@ -24,6 +25,8 @@ router.get("/seller", auth, sellerMiddleware, getMyOrders); // Orders for seller
 
 /* ================= ADMIN ================= */
 router.get("/", auth, roleMiddleware("admin"), getAllOrders);
+router.get("/:id", auth, roleMiddleware("admin"), getOrderById);
 router.put("/:id/status", auth, roleMiddleware("admin"), updateOrderStatus);
 
 module.exports = router;
+

@@ -5,8 +5,8 @@ const Product = require("../models/Product");
 const Order = require("../models/Order");
 const User = require("../models/User");
 
-const auth = require("../middleware/authMiddleware");
-const admin = require("../middleware/adminMiddleware");
+const auth = require("../middlewares/authMiddleware");
+const admin = require("../middlewares/adminMiddleware");
 
 /* ========== ADMIN STATS (existing) ========== */
 
@@ -15,10 +15,68 @@ router.get("/stats", auth, admin, async (req, res) => {
   try {
 
     const products = await Product.countDocuments();
-    const orders = await Order.countDocuments();
+    const orders = await Order.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
     const users = await User.countDocuments();
+    const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.totalPrice) || 0), 0);
+    const recentOrders = orders.slice(0, 5).map((order) => ({
+      _id: order._id,
+      totalPrice: order.totalPrice,
+      status: order.status || order.orderStatus || "Pending",
+      createdAt: order.createdAt,
+      user: order.user
+    }));
 
-    res.json({ products, orders, users });
+    const seriesMap = new Map();
+
+    for (let offset = 6; offset >= 0; offset -= 1) {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - offset);
+
+      const key = date.toISOString().slice(0, 10);
+      seriesMap.set(key, {
+        label: date.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short"
+        }),
+        revenue: 0,
+        orders: 0
+      });
+    }
+
+    orders.forEach((order) => {
+      const createdAt = new Date(order.createdAt);
+      createdAt.setHours(0, 0, 0, 0);
+      const key = createdAt.toISOString().slice(0, 10);
+
+      if (!seriesMap.has(key)) {
+        return;
+      }
+
+      const current = seriesMap.get(key);
+      current.revenue += Number(order.totalPrice) || 0;
+      current.orders += 1;
+    });
+
+    const chartSeries = Array.from(seriesMap.values());
+
+    res.json({
+      products,
+      orders: orders.length,
+      users,
+      totalRevenue,
+      recentOrders,
+      revenueSeries: chartSeries.map((item) => ({
+        label: item.label,
+        revenue: item.revenue
+      })),
+      orderSeries: chartSeries.map((item) => ({
+        label: item.label,
+        orders: item.orders
+      }))
+    });
 
   } catch (error) {
     console.error(error);
@@ -204,3 +262,4 @@ router.put("/sellers/:id/commission", auth, admin, async (req, res) => {
 });
 
 module.exports = router;
+

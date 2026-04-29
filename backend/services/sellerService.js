@@ -1,8 +1,135 @@
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const User = require("../models/User");
-const parseVariants = require("../utils/parseVariants");
 const ApiError = require("../utils/apiError");
+
+const parseVariants = (variantsRaw) => {
+  if (!variantsRaw) {
+    return [];
+  }
+
+  try {
+    const parsed = typeof variantsRaw === "string" ? JSON.parse(variantsRaw) : variantsRaw;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    throw new ApiError(400, "Invalid variants payload");
+  }
+};
+
+const normalizeImageList = (images) => {
+  if (!Array.isArray(images)) {
+    return [];
+  }
+
+  return images
+    .map((image) => {
+      if (typeof image === "string") {
+        return image.trim();
+      }
+
+      if (image && typeof image === "object" && typeof image.url === "string") {
+        return image.url.trim();
+      }
+
+      return "";
+    })
+    .filter(Boolean);
+};
+
+const splitUploadFiles = (files) => {
+  const productFiles = [];
+  const groupedVariantFiles = new Map();
+
+  files.forEach((file) => {
+    if (file.fieldname === "images" || file.fieldname === "image") {
+      productFiles.push(file);
+      return;
+    }
+
+    const indexedMatch = /^variantImages[-_](\d+)$/.exec(file.fieldname);
+
+    if (!indexedMatch) {
+      return;
+    }
+
+    const variantIndex = Number(indexedMatch[1]);
+    const currentFiles = groupedVariantFiles.get(variantIndex) || [];
+    currentFiles.push(file);
+    groupedVariantFiles.set(variantIndex, currentFiles);
+  });
+
+  return { productFiles, groupedVariantFiles };
+};
+
+const buildImageRecords = (files, productName) =>
+  files.map((file, index) => ({
+    url: file.path,
+    type: index === 0 ? "main" : "gallery",
+    publicId: file.filename,
+    altText: `${productName} - Image ${index + 1}`
+  }));
+
+const buildVariants = (variantsRaw, files, fallbackPrice = 0) => {
+  const parsedVariants = parseVariants(variantsRaw);
+  const { groupedVariantFiles } = splitUploadFiles(files);
+
+  return parsedVariants.reduce((accumulator, variant, index) => {
+    const existingImages = normalizeImageList(variant.images);
+    const uploadedImages = (groupedVariantFiles.get(index) || [])
+      .map((file) => file.path)
+      .filter(Boolean);
+    const mergedImages = [...existingImages, ...uploadedImages];
+    const size = String(variant.size || "").trim();
+    const color = String(variant.color || "").trim();
+    const sku = String(variant.sku || "").trim();
+    const rawPrice = variant.price;
+    const rawStock = variant.stock;
+    const hasAnyContent =
+      size ||
+      color ||
+      sku ||
+      rawPrice !== undefined && rawPrice !== "" ||
+      rawStock !== undefined && rawStock !== "" ||
+      mergedImages.length > 0;
+
+    if (!hasAnyContent) {
+      return accumulator;
+    }
+
+    const variantPrice =
+      rawPrice === undefined || rawPrice === ""
+        ? Number(fallbackPrice) || 0
+        : Number(rawPrice);
+
+    if (!Number.isFinite(variantPrice) || variantPrice < 0) {
+      throw new ApiError(400, `Variant ${index + 1} price must be a valid number`);
+    }
+
+    const variantStock =
+      rawStock === undefined || rawStock === "" ? 0 : Number(rawStock);
+
+    if (!Number.isFinite(variantStock) || variantStock < 0) {
+      throw new ApiError(400, `Variant ${index + 1} stock must be a valid number`);
+    }
+
+    const variantName = String(
+      variant.name || [color, size].filter(Boolean).join(" - ") || sku || `Variant ${index + 1}`
+    ).trim();
+
+    accumulator.push({
+      name: variantName,
+      size,
+      color,
+      price: variantPrice,
+      stock: variantStock,
+      sku,
+      image: mergedImages[0] || "",
+      images: mergedImages
+    });
+
+    return accumulator;
+  }, []);
+};
 
 exports.getSellerStats = async (userId) => {
   const products = await Product.find({ seller: userId });
@@ -43,15 +170,11 @@ exports.getSellerProducts = async (userId) => {
 };
 
 exports.addSellerProduct = async (req, userId) => {
-  const images = (req.files || []).map((file, index) => ({
-    url: file.path,
-    type: index === 0 ? "main" : "gallery",
-    publicId: file.filename,
-    altText: `${req.body.name} - Image ${index + 1}`
-  }));
-
+  const files = Array.isArray(req.files) ? req.files : [];
+  const { productFiles } = splitUploadFiles(files);
+  const images = buildImageRecords(productFiles, req.body.name || "Product");
   const legacyImage = images.length > 0 ? images[0].url : "";
-  const parsedVariants = parseVariants(req.body.variants, legacyImage);
+  const parsedVariants = buildVariants(req.body.variants, files, req.body.price);
 
   const product = new Product({
     name: req.body.name,
@@ -73,13 +196,9 @@ exports.updateSellerProduct = async (id, req, userId) => {
   if (!product) throw new ApiError(404, "Product not found");
   if (product.seller?.toString() !== userId.toString()) throw new ApiError(403, "Not authorized");
 
-  const images = (req.files || []).map((file, index) => ({
-    url: file.path,
-    type: index === 0 ? "main" : "gallery",
-    publicId: file.filename,
-    altText: `${req.body.name || product.name} - Image ${index + 1}`
-  }));
-
+  const files = Array.isArray(req.files) ? req.files : [];
+  const { productFiles } = splitUploadFiles(files);
+  const images = buildImageRecords(productFiles, req.body.name || product.name);
   const legacyImage = images.length > 0 ? images[0].url : "";
 
   const updateData = {
@@ -96,7 +215,11 @@ exports.updateSellerProduct = async (id, req, userId) => {
   }
 
   if (req.body.variants !== undefined) {
-    updateData.variants = parseVariants(req.body.variants, legacyImage || product.image);
+    updateData.variants = buildVariants(
+      req.body.variants,
+      files,
+      req.body.price || product.price
+    );
   }
 
   const updated = await Product.findByIdAndUpdate(id, updateData, { new: true });
@@ -122,12 +245,9 @@ exports.uploadSellerVariantImages = async (id, variantId, req, userId) => {
 
   if (!req.files || req.files.length === 0) throw new ApiError(400, "No images provided");
 
-  const uploadedImages = req.files.map((file, index) => ({
-    url: file.path,
-    type: index === 0 ? "main" : "gallery",
-    publicId: file.filename,
-    altText: `${product.name} - ${product.variants[variantIndex].color || product.variants[variantIndex].size} - Image ${index + 1}`
-  }));
+  const uploadedImages = req.files
+    .map((file) => file.path)
+    .filter(Boolean);
 
   product.variants[variantIndex].images = [
     ...(product.variants[variantIndex].images || []),
@@ -135,7 +255,7 @@ exports.uploadSellerVariantImages = async (id, variantId, req, userId) => {
   ];
 
   if (uploadedImages.length > 0 && !product.variants[variantIndex].image) {
-    product.variants[variantIndex].image = uploadedImages[0].url;
+    product.variants[variantIndex].image = uploadedImages[0];
   }
 
   await product.save();

@@ -2,8 +2,8 @@ const authService = require("../services/authService");
 const asyncHandler = require("../utils/asyncHandler");
 
 exports.register = asyncHandler(async (req, res) => {
-  const payload = await authService.register(req.body);
-  res.json(payload);
+  const payload = await authService.register(req.validatedData || req.body);
+  res.status(201).json(payload);
 });
 
 exports.login = asyncHandler(async (req, res) => {

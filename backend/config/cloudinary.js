@@ -1,4 +1,5 @@
 const cloudinary = require("cloudinary").v2;
+const logger = require("../utils/logger");
 
 // Configure Cloudinary with enhanced settings
 cloudinary.config({
@@ -11,13 +12,12 @@ cloudinary.config({
 // Add error handling and logging
 cloudinary.api.ping((error, result) => {
   if (error) {
-    console.warn('Cloudinary connection warning:', error.message);
-    console.warn('Server will continue without Cloudinary verification');
+    logger.warn("Cloudinary connection warning", { error: error.message });
   } else {
-    console.log('Cloudinary connected successfully');
+    logger.info("Cloudinary connected successfully");
   }
 }).catch(err => {
-  console.warn('Cloudinary ping failed, but server will continue:', err.message);
+  logger.warn("Cloudinary ping failed, server will continue", { error: err.message });
 });
 
 module.exports = cloudinary;

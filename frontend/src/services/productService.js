@@ -2,21 +2,22 @@ import API from "./api";
 
 export const getAllProducts = async () => {
   const response = await API.get(`/products`);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 export const getProduct = async (id) => {
   const response = await API.get(`/products/${id}`);
-  return response.data;
+  return response.data?.data || response.data;
 };
 
 export const getRelatedProducts = async (category, excludeId) => {
   if (!category) return [];
 
   const response = await API.get(`/products?category=${encodeURIComponent(category)}`);
-  if (!Array.isArray(response.data)) return [];
+  const products = response.data?.data || response.data;
+  if (!Array.isArray(products)) return [];
 
-  return response.data
+  return products
     .filter((item) => item._id !== excludeId)
     .slice(0, 8);
 };

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const User = require("../models/User");
-const auth = require("../middleware/authMiddleware");
+const auth = require("../middlewares/authMiddleware");
 
 /* ================= GET WISHLIST ================= */
 router.get("/", auth, async (req, res) => {

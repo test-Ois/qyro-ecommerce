@@ -72,13 +72,25 @@ exports.getAllOrders = async () => {
     .sort({ createdAt: -1 });
 };
 
+exports.getOrderById = async (id) => {
+  const order = await Order.findById(id)
+    .populate("user", "name email role")
+    .populate("products.product", "name image price");
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  return order;
+};
+
 exports.updateOrderStatus = async (id, status) => {
   const validStatuses = ["Pending", "Shipped", "Delivered", "Cancelled"];
   if (!validStatuses.includes(status)) {
     throw new ApiError(400, "Invalid status value");
   }
 
-  const order = await Order.findById(id).populate("user", "name");
+  const order = await Order.findById(id).populate("user", "name email");
   if (!order) throw new ApiError(404, "Order not found");
 
   if (order.status === "Cancelled") {

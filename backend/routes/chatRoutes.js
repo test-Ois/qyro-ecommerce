@@ -7,7 +7,7 @@ const {
   clearChat
 } = require("../controllers/chatController");
 
-const auth = require("../middleware/authMiddleware");
+const auth = require("../middlewares/authMiddleware");
 
 /* GET chat history — logged in user only */
 router.get("/history", auth, getChatHistory);
@@ -19,3 +19,4 @@ router.post("/send", auth, sendMessage);
 router.delete("/clear", auth, clearChat);
 
 module.exports = router;
+

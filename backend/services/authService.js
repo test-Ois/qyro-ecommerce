@@ -28,10 +28,13 @@ const generateRefreshToken = (user) => {
   );
 };
 
-exports.register = async ({ name, email, password, role, shopName, shopDescription }) => {
+exports.register = async ({ name, email, password, role = "user", shopName, shopDescription }) => {
   if (!name || !email || !password) {
     throw new ApiError(400, "All fields are required");
   }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const userRole = ["user", "seller", "admin"].includes(role) ? role : "user";
 
   if (name.length < 3) {
     throw new ApiError(400, "Name must be at least 3 characters");
@@ -41,67 +44,69 @@ exports.register = async ({ name, email, password, role, shopName, shopDescripti
     throw new ApiError(400, "Password must be at least 8 characters and include uppercase, number, and special character.");
   }
 
-  // SECURITY: Prevent admin role assignment during registration
-  // Admin accounts must be created through database seeding or admin-only endpoints
-  if (role === "admin") {
-    throw new ApiError(403, "Admin registration not allowed. Contact system administrator.");
-  }
-
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
-    logger.logRegistrationFailure(email, "Email already registered");
-    // SECURITY: Generic error message prevents account enumeration attacks
-    throw new ApiError(400, "Registration failed. Please try again or contact support.");
+    logger.logRegistrationFailure(normalizedEmail, "Email already registered");
+    throw new ApiError(400, "Email already exists");
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const userData = {
-    name,
-    email,
+    name: name.trim(),
+    email: normalizedEmail,
     password: hashedPassword,
-    role: role === "seller" ? "seller" : "user", // Only allow "user" or "seller"
-    shopName: role === "seller" ? shopName || "" : "",
-    shopDescription: role === "seller" ? shopDescription || "" : "",
+    role: userRole,
+    shopName: userRole === "seller" ? shopName || "" : "",
+    shopDescription: userRole === "seller" ? shopDescription || "" : "",
     isApproved: false
   };
 
-  const user = await User.create(userData);
-
-  // Send welcome email (don't fail registration if email fails)
   try {
-    await sendEmail(
-      user.email,
-      role === "seller" ? "Q-Mart Seller Application Received" : "Welcome to Q-Mart",
-      role === "seller"
-        ? `Hello ${user.name}, your seller application is under review. We will notify you once approved.`
-        : `Hello ${user.name}, your account has been created successfully.`
-    );
-  } catch (err) {
-    logger.logAuthError(err, { context: "email_send_failed", email });
-  }
+    const user = await User.create(userData);
 
-  logger.logRegistration(email, role);
-
-  const token = generateToken(user);
-  const refreshToken = generateRefreshToken(user);
-
-  // Store refresh token in user
-  user.refreshToken = refreshToken;
-  user.refreshTokenExpire = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-  await user.save();
-
-  return {
-    message: role === "seller" ? "Seller application submitted. Await admin approval." : "User registered successfully",
-    token,
-    refreshToken,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt
+    // Send welcome email (don't fail registration if email fails)
+    try {
+      await sendEmail(
+        user.email,
+        userRole === "seller" ? "Q-Mart Seller Application Received" : "Welcome to Q-Mart",
+        userRole === "seller"
+          ? `Hello ${user.name}, your seller application is under review. We will notify you once approved.`
+          : `Hello ${user.name}, your account has been created successfully.`
+      );
+    } catch (err) {
+      logger.logAuthError(err, { context: "email_send_failed", email: normalizedEmail });
     }
-  };
+
+    logger.logRegistration(normalizedEmail, userRole);
+
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Store refresh token in user
+    user.refreshToken = refreshToken;
+    user.refreshTokenExpire = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    await user.save();
+
+    return {
+      message: userRole === "seller" ? "Seller application submitted. Await admin approval." : "User created successfully",
+      token,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isApproved: user.isApproved,
+        createdAt: user.createdAt
+      }
+    };
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new ApiError(400, "Email already exists");
+    }
+
+    throw error;
+  }
 };
 
 exports.login = async ({ email, password }) => {
@@ -113,6 +118,11 @@ exports.login = async ({ email, password }) => {
   if (!user) {
     logger.logLoginFailure(email, "User not found");
     throw new ApiError(401, "Invalid credentials");
+  }
+
+  if (user.isBlocked) {
+    logger.logLoginFailure(email, "Blocked account");
+    throw new ApiError(403, "Your account has been blocked");
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
@@ -230,6 +240,13 @@ exports.refreshToken = async (refreshToken) => {
       throw new ApiError(401, "Refresh token expired");
     }
 
+    if (user.isBlocked) {
+      user.refreshToken = null;
+      user.refreshTokenExpire = null;
+      await user.save();
+      throw new ApiError(403, "Your account has been blocked");
+    }
+
     // Generate new tokens (rotation)
     const newToken = generateToken(user);
     const newRefreshToken = generateRefreshToken(user);
@@ -241,7 +258,15 @@ exports.refreshToken = async (refreshToken) => {
 
     return {
       token: newToken,
-      refreshToken: newRefreshToken
+      refreshToken: newRefreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isApproved: user.isApproved,
+        createdAt: user.createdAt
+      }
     };
   } catch (error) {
     // SECURITY: Re-throw ApiError instances, wrap others

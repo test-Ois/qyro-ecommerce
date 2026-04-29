@@ -23,8 +23,15 @@ const sanitizeVariantImages = (images) => {
   });
 };
 
-exports.getAllProducts = async () => {
-  return await Product.find();
+exports.getAllProducts = async (keyword = "") => {
+  const trimmedKeyword = String(keyword || "").trim();
+  const query = trimmedKeyword
+    ? {
+        name: { $regex: trimmedKeyword, $options: "i" }
+      }
+    : {};
+
+  return await Product.find(query);
 };
 
 exports.getProductById = async (id) => {
@@ -99,7 +106,7 @@ exports.updateProduct = async (id, req) => {
 
   // SECURITY: Strict owner validation - defense in depth
   // Even with middleware, validate ownership in service layer
-  if (product.seller.toString() !== req.user.id) {
+  if (req.user.role !== "admin" && product.seller.toString() !== req.user.id) {
     throw new ApiError(403, "Access denied - you can only modify your own products");
   }
 
@@ -164,12 +171,12 @@ exports.updateProduct = async (id, req) => {
   return updated;
 };
 
-exports.deleteProduct = async (id, userId) => {
+exports.deleteProduct = async (id, userId, userRole = "seller") => {
   const product = await Product.findById(id);
   if (!product) throw new ApiError(404, "Product not found");
 
   // SECURITY: Strict owner validation - defense in depth
-  if (product.seller.toString() !== userId) {
+  if (userRole !== "admin" && product.seller.toString() !== userId) {
     throw new ApiError(403, "Access denied - you can only delete your own products");
   }
 

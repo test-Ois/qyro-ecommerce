@@ -1,3 +1,5 @@
+const logger = require("./logger");
+
 /**
  * Cloudinary Image Optimization Utilities
  */
@@ -127,7 +129,10 @@ const deleteProductImages = async (product) => {
     );
 
     await Promise.all(deletePromises);
-    console.log(`Deleted ${imagesToDelete.length} images for product ${product._id}`);
+    logger.info("Deleted product images", {
+      count: imagesToDelete.length,
+      productId: product._id
+    });
   }
 };
 

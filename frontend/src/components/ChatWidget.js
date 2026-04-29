@@ -24,7 +24,7 @@ function ChatWidget() {
         content: `Hi${user ? ` ${user.name}` : ""}! 👋 How can I help you today?`
       }]);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length, user]);
 
   const sendMessage = async () => {
 

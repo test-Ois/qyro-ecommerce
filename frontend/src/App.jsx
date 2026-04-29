@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 
 import Footer from "./components/footer/Footer"; 
@@ -9,28 +9,11 @@ import Loader from "./components/Loader";
 
 import { AuthContext } from "./context/AuthContext";
 
-import ProtectedRoute from "./components/ProtectedRoute";
-import ChatWidget from "./components/ChatWidget";
+import AppRoutes from "./routes/AppRoutes";
+import MainLayout from "./layouts/MainLayout";
 import Navbar from "./components/Navbar";
 
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import VerifyOTP from "./pages/VerifyOTP";
-import ResetPassword from "./pages/ResetPassword";
-import Checkout from "./pages/Checkout";
-import Orders from "./pages/Orders";
-import Wishlist from "./pages/Wishlist";
-import AccountDetails from "./pages/AccountDetails";
-import CustomerService from "./pages/CustomerService";
-import SellerPending from "./pages/SellerPending";
-import SellerDashboard from "./pages/SellerDashboard";
-import ProductPage from "./features/product/pages/ProductPage";
-import Cart from "./pages/Cart";
-import Success from "./pages/Success";
-import AddProduct from "./features/product/pages/AddProduct";
-import EditProduct from "./features/product/pages/EditProduct";
 
 import "./App.css";
 
@@ -137,32 +120,6 @@ function AppContent() {
     });
   };
 
-  const increaseQty = (id) => {
-    setCart((prev) =>
-      prev.map((item) =>
-        item._id === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
-  };
-
-  const decreaseQty = (id) => {
-    setCart((prev) =>
-      prev
-        .map((item) =>
-          item._id === id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
-  };
-
-  const removeItem = (id) => {
-    setCart((prev) => prev.filter((item) => item._id !== id));
-  };
-
   const totalPrice = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
@@ -197,102 +154,14 @@ function AppContent() {
 }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar
-        totalItems={totalItems}
-        notifications={notifications}
-        setNotifications={setNotifications}
-      />
-
-      <main className="flex-1">
-
-      <Routes>
-        <Route path="/" element={<Home addToCart={addToCart} />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-otp" element={<VerifyOTP />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Protected user routes */}
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Checkout cart={cart} totalPrice={totalPrice} />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Orders />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/wishlist"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <Wishlist />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/account"
-          element={
-            <ProtectedRoute requireAuth={true}>
-              <AccountDetails />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="/customer-service" element={<CustomerService />} />
-
-        {/* Seller routes */}
-        <Route path="/seller-pending" element={<SellerPending />} />
-
-        <Route
-          path="/seller-dashboard"
-          element={
-            <ProtectedRoute requiredRole="seller" requireApprovedSeller={true}>
-              <SellerDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/add-product"
-          element={
-            <ProtectedRoute requiredRole="seller" requireApprovedSeller={true}>
-              <AddProduct />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/seller/products/edit/:id"
-          element={
-            <ProtectedRoute requiredRole="seller" requireApprovedSeller={true}>
-              <EditProduct />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Product pages */}
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/success" element={<Success />} />
-        <Route path="/product/:id" element={<ProductPage />} />
-      </Routes>
-      </main>
-
-      {shouldShowChat && <ChatWidget />}
-      <Footer />
-    </div>
+    <MainLayout
+      totalItems={totalItems}
+      notifications={notifications}
+      setNotifications={setNotifications}
+      shouldShowChat={shouldShowChat}
+    >
+      <AppRoutes addToCart={addToCart} cart={cart} totalPrice={totalPrice} />
+    </MainLayout>
   );
 }
 

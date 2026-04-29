@@ -20,6 +20,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const otpRoutes = require("./routes/otpRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const userRoutes = require("./routes/userRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
 const chatRoutes = require("./routes/chatRoutes"); // New
@@ -100,26 +101,27 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/chat", chatRoutes); // New
 app.use("/api/payment", paymentRoutes);
 
 /* GLOBAL ERROR HANDLER */
-const errorHandler = require("./middleware/errorHandler");
+const errorHandler = require("./middlewares/errorHandler");
 app.use(errorHandler);
 
 /* SOCKET.IO CONNECTION */
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  logger.info("Socket connected", { socketId: socket.id });
 
   socket.on("join", (userId) => {
     socket.join(userId);
-    console.log(`User ${userId} joined their room`);
+    logger.info("Socket joined user room", { socketId: socket.id, userId });
   });
 
   socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+    logger.info("Socket disconnected", { socketId: socket.id });
   });
 });
 
@@ -132,5 +134,6 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info("Server running", { port: PORT });
 });
+

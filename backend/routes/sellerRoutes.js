@@ -10,9 +10,9 @@ const {
   uploadSellerVariantImages
 } = require("../controllers/sellerController");
 
-const auth = require("../middleware/authMiddleware");
-const seller = require("../middleware/sellerMiddleware");
-const upload = require("../middleware/upload");
+const auth = require("../middlewares/authMiddleware");
+const seller = require("../middlewares/sellerMiddleware");
+const upload = require("../middlewares/upload");
 
 /* ========== SELLER DASHBOARD STATS ========== */
 router.get("/stats", auth, seller, getSellerStats);

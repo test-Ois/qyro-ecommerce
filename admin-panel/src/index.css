@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply m-0 bg-[#0f0a1e] font-sans text-white antialiased;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer utilities {
+  .dashboard-shell > h1:first-child {
+    @apply hidden;
+  }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent;
+  }
+}

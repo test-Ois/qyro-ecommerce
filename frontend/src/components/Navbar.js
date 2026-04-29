@@ -2,6 +2,7 @@ import { useState, useContext, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
+import StoreNavigation from "./StoreNavigation";
 
 function Navbar({ openCart, notifications, setNotifications }) {
 
@@ -12,11 +13,10 @@ function Navbar({ openCart, notifications, setNotifications }) {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get("search") || "";
-  const sort = searchParams.get("sort") || "";
-  const category = searchParams.get("category") || "";
   const priceRange = Number(searchParams.get("price")) || 1000000;
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
   const [showDepartments, setShowDepartments] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
@@ -70,9 +70,7 @@ function Navbar({ openCart, notifications, setNotifications }) {
 
   const languages = [
     { code: "en", name: "English (India)" },
-    { code: "ln", name: "More languages coming soon" },
-    
-    
+    { code: "ln", name: "More languages coming soon" }
   ];
 
   return (
@@ -378,10 +376,10 @@ function Navbar({ openCart, notifications, setNotifications }) {
           
 
 
-          {/* ☰ */}
+          {/* Menu */}
           <button
-            onClick={() => setShowDepartments(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition"
+            onClick={() => setOpenMenu(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-gradient-to-r from-pink-500/20 to-indigo-500/20 text-white transition hover:scale-105 hover:border-pink-400/40 hover:bg-white/10"
           >
             <span className="text-xl">☰</span>
           </button>
@@ -520,9 +518,35 @@ function Navbar({ openCart, notifications, setNotifications }) {
         </div>
       )}
 
+      {openMenu && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[1px]"
+          onClick={() => setOpenMenu(false)}
+        />
+      )}
+
+      <div
+        className={`fixed left-0 top-0 z-50 h-full w-64 transform transition-transform duration-300 ease-out ${
+          openMenu ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex h-full flex-col bg-[#0f0c29]">
+          <div className="flex items-center justify-end px-4 pt-4">
+            <button
+              type="button"
+              onClick={() => setOpenMenu(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition hover:bg-white/20"
+            >
+              X
+            </button>
+          </div>
+          <StoreNavigation onNavigate={() => setOpenMenu(false)} />
+        </div>
+      </div>
+
       {/* SIDEBAR */}
       {/* ===== SIDEBAR ===== */}
-{showDepartments && (
+{showDepartments && false && (
   <div
     className="fixed inset-0 bg-black/50 z-50"
     onClick={() => setShowDepartments(false)}

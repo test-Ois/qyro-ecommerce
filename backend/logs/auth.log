@@ -5,3 +5,36 @@
 {"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-03-31 13:09:35"}
 {"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-03-31 13:12:20"}
 {"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-03-31 13:26:24"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-03-31 14:32:55"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-03-31 14:33:33"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 03:01:01"}
+{"email":"seller123@gmail.com","event":"LOGIN_FAILURE","level":"warn","message":"User login failed","reason":"Invalid password","service":"auth-service","timestamp":"2026-04-01 03:34:51"}
+{"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-04-01 03:35:11"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_FAILURE","level":"warn","message":"User login failed","reason":"Invalid password","service":"auth-service","timestamp":"2026-04-01 03:36:17"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 03:36:27"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 03:46:13"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 04:01:40"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 04:25:39"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 04:42:44"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 04:43:19"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 05:11:25"}
+{"email":"user123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"user","service":"auth-service","timestamp":"2026-04-01 05:14:16"}
+{"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-04-01 05:17:28"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 05:36:54"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-01 05:41:40"}
+{"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-04-02 11:16:27"}
+{"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-04-05 00:06:06"}
+{"email":"user123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"user","service":"auth-service","timestamp":"2026-04-05 00:23:09"}
+{"email":"seller123@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"seller","service":"auth-service","timestamp":"2026-04-05 00:43:30"}
+{"email":"qayoomakhtar73@gmail.com","event":"LOGIN_SUCCESS","level":"info","message":"User login successful","role":"admin","service":"auth-service","timestamp":"2026-04-09 12:47:56"}
+{"level":"info","message":"Server running","port":"5000","service":"auth-service","timestamp":"2026-04-12 09:25:31"}
+{"level":"info","message":"MongoDB connected","service":"auth-service","timestamp":"2026-04-12 09:25:33"}
+{"level":"info","message":"Cloudinary connected successfully","service":"auth-service","timestamp":"2026-04-12 09:25:34"}
+{"level":"info","message":"Socket connected","service":"auth-service","socketId":"RjV3hb9a2OdTrX1dAAAB","timestamp":"2026-04-12 09:25:58"}
+{"level":"info","message":"Socket joined user room","service":"auth-service","socketId":"RjV3hb9a2OdTrX1dAAAB","timestamp":"2026-04-12 09:25:58","userId":"69aea155640d673dda1cb97c"}
+{"email":"njnjfk@gmail.com","level":"info","message":"Email sent successfully","service":"auth-service","subject":"Q-Mart Seller Application Received","timestamp":"2026-04-12 09:28:04"}
+{"email":"njnjfk@gmail.com","event":"REGISTRATION","level":"info","message":"User registered","role":"seller","service":"auth-service","timestamp":"2026-04-12 09:28:04"}
+{"level":"info","message":"Socket disconnected","service":"auth-service","socketId":"RjV3hb9a2OdTrX1dAAAB","timestamp":"2026-04-12 09:28:52"}
+{"level":"info","message":"Socket connected","service":"auth-service","socketId":"XAmUzeUqXnzdZ8uYAAAD","timestamp":"2026-04-12 09:28:52"}
+{"level":"info","message":"Socket disconnected","service":"auth-service","socketId":"XAmUzeUqXnzdZ8uYAAAD","timestamp":"2026-04-12 09:35:54"}
+{"level":"info","message":"Socket connected","service":"auth-service","socketId":"I1O9EFt0F3LQyQZjAAAF","timestamp":"2026-04-12 09:36:01"}

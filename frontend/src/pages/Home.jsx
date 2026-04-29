@@ -7,7 +7,7 @@ import {
 import ProductCard, { ProductCardSkeleton } from "../features/product/components/ProductCard";
 import ProductModal from "../features/product/components/ProductModal";
 import { CartContext } from "../context/CartContext";
-import { getAllProducts } from "../services/productService";
+import useProducts from "../hooks/useProducts";
 import { motion } from "framer-motion";
 import CountdownTimer from "../components/CountdownTimer";
 
@@ -19,8 +19,7 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { error: productsError, loading, products } = useProducts();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
@@ -34,18 +33,6 @@ function Home() {
   useEffect(() => {
   document.title = "Qyro - Elevate Your Style";
 }, []);
-
-  useEffect(() => {
-    getAllProducts()
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch products:", err);
-        setLoading(false);
-      });
-  }, []);
 
   useEffect(() => {
     const syncRecentlyViewed = () => {
@@ -394,7 +381,13 @@ function Home() {
         </div>
       )}
 
-      {!loading && filteredProducts.length === 0 && (
+      {!loading && productsError && (
+        <div className="flex h-64 flex-col items-center justify-center text-center">
+          <p className="text-lg font-medium text-red-300">{productsError}</p>
+        </div>
+      )}
+
+      {!loading && !productsError && filteredProducts.length === 0 && (
         <div className="flex h-64 flex-col items-center justify-center text-center">
           <span className="mb-4 text-5xl">🔍</span>
           <p className="text-lg font-medium text-gray-400">No products found.</p>
@@ -404,7 +397,7 @@ function Home() {
         </div>
       )}
 
-      {!loading && filteredProducts.length > 0 && (
+      {!loading && !productsError && filteredProducts.length > 0 && (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {visibleProducts.map((product, index) => (

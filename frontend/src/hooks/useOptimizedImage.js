@@ -63,6 +63,7 @@ export const useOptimizedImage = (src, options = {}) => {
     placeholderSrc,
     webpSrc,
     srcSet,
+    sizes,
     handleLoad,
     handleError
   };
@@ -123,6 +124,7 @@ export const OptimizedImage = ({
   lazy = true,
   quality = 'auto',
   format = 'auto',
+  sizes = '100vw',
   placeholder = true,
   fallbackSrc = '/placeholder-image.png',
   onError: customOnError,
@@ -136,9 +138,10 @@ export const OptimizedImage = ({
     placeholderSrc,
     webpSrc,
     srcSet,
+    sizes: imageSizes,
     handleLoad,
     handleError
-  } = useOptimizedImage(src, { lazy, quality, format, placeholder });
+  } = useOptimizedImage(src, { lazy, quality, format, sizes, placeholder });
 
   const currentSrc = hasError ? fallbackSrc : (optimizedSrc || placeholderSrc);
 
@@ -156,6 +159,7 @@ export const OptimizedImage = ({
         ref={imgRef}
         src={currentSrc}
         srcSet={srcSet && !hasError ? srcSet : undefined}
+        sizes={srcSet && !hasError ? imageSizes : undefined}
         alt={alt}
         className={`${className} ${!isLoaded ? 'blur-sm' : ''} transition-all duration-300`}
         loading={lazy ? 'lazy' : 'eager'}

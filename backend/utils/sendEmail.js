@@ -1,4 +1,5 @@
 const transporter = require("./emailTransporter");
+const logger = require("./logger");
 
 const sendEmail = async (email, subject, message) => {
 
@@ -11,11 +12,11 @@ const sendEmail = async (email, subject, message) => {
       text: message
     });
 
-    console.log("Email sent successfully");
+    logger.info("Email sent successfully", { email, subject });
 
   } catch (error) {
 
-    console.log("Email sending failed:", error);
+    logger.error("Email sending failed", { email, subject, error: error.message });
 
   }
 

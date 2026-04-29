@@ -12,11 +12,11 @@ const {
   uploadVariantImages
 } = require("../controllers/productController");
 
-const auth = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
-const sellerMiddleware = require("../middleware/sellerMiddleware");
-const ownerMiddleware = require("../middleware/ownerMiddleware");
-const upload = require("../middleware/upload");
+const auth = require("../middlewares/authMiddleware");
+const roleMiddleware = require("../middlewares/roleMiddleware");
+const sellerMiddleware = require("../middlewares/sellerMiddleware");
+const ownerMiddleware = require("../middlewares/ownerMiddleware");
+const upload = require("../middlewares/upload");
 
 /* ================= PUBLIC ================= */
 router.get("/", getProducts);
@@ -33,6 +33,7 @@ router.post("/:id/variants/:variantId/images", auth, sellerMiddleware, ownerMidd
 
 /* ================= ADMIN ================= */
 // Admin can manage any product (override seller restrictions)
+router.post("/admin", auth, roleMiddleware("admin"), upload.uploadDynamic, upload.handleUploadError, addProduct);
 router.put("/:id/admin", auth, roleMiddleware("admin"), upload.uploadDynamic, upload.handleUploadError, updateProduct);
 router.delete("/:id/admin", auth, roleMiddleware("admin"), deleteProduct);
 
@@ -41,3 +42,4 @@ router.post("/:id/reviews", auth, addReview);
 router.delete("/:id/reviews/:reviewId", auth, roleMiddleware("admin"), deleteReview);
 
 module.exports = router;
+

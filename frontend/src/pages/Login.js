@@ -3,9 +3,11 @@ import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
+const ADMIN_TRANSFER_KEY = "QYRO_ADMIN_AUTH";
+const ADMIN_DASHBOARD_URL = "http://localhost:3001/dashboard";
+const LOGIN_API_URL = "http://localhost:5000/api/auth/login";
 
 function Login() {
-
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -14,6 +16,45 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const persistAuth = (user, token, refreshToken) => {
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", token);
+
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    } else {
+      localStorage.removeItem("refreshToken");
+    }
+
+    login(user, token, refreshToken);
+  };
+
+  const redirectByRole = (user, token, refreshToken) => {
+    if (user.role === "admin") {
+      window.name = JSON.stringify({
+        type: ADMIN_TRANSFER_KEY,
+        user,
+        token,
+        refreshToken
+      });
+      window.location.replace(ADMIN_DASHBOARD_URL);
+      return;
+    }
+
+    window.name = "";
+
+    if (user.role === "seller") {
+      if (user.isApproved) {
+        navigate("/seller-dashboard", { replace: true });
+      } else {
+        navigate("/seller-pending", { replace: true });
+      }
+      return;
+    }
+
+    navigate("/", { replace: true });
+  };
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -27,16 +68,11 @@ function Login() {
     setLoading(true);
 
     try {
-
-      const res = await fetch(
-        "http://localhost:5000/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        }
-      );
-
+      const res = await fetch(LOGIN_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -44,61 +80,44 @@ function Login() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      login(data.user, data.token, data.refreshToken);
-
-      // Role-based redirect
-      if (data.user.role === "admin") {
-        window.location.href = "http://localhost:3001/dashboard";
-      } else if (data.user.role === "seller") {
-        if (data.user.isApproved) {
-          navigate("/seller-dashboard");
-        } else {
-          navigate("/seller-pending");
-        }
-      } else {
-        navigate("/");
+      if (!data?.user || !data?.token) {
+        setError("Invalid login response");
+        return;
       }
 
-    } catch (error) {
+      persistAuth(data.user, data.token, data.refreshToken);
+      redirectByRole(data.user, data.token, data.refreshToken);
+    } catch (requestError) {
+      console.error("Login error:", requestError);
       setError("Server error. Please try again.");
     } finally {
       setLoading(false);
     }
-
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] flex flex-col items-center justify-center px-4">
-
-      {/* Card */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 shadow-2xl rounded-3xl p-8 w-full max-w-sm">
-
-        {/* Logo */}
         <div
           onClick={() => navigate("/")}
           className="text-center cursor-pointer mb-6"
         >
           <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500 bg-clip-text text-transparent tracking-wide hover:scale-105 transition">
-  Qyro
-</h1>
+            Qyro
+          </h1>
         </div>
 
         <h2 className="text-1xl font-semibold bg-gradient-to-r from-yellow-800 via-pink-400 to-purple-700 bg-clip-text text-transparent text-center mb-6">
-          Welcome Back 
+          Welcome Back
         </h2>
 
         <form onSubmit={submitHandler} className="space-y-5">
-
-          {/* Error message */}
           {error && (
             <p className="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg border border-red-400/20">
               {error}
             </p>
           )}
 
-          {/* Email input */}
           <input
             type="email"
             placeholder="Email address"
@@ -108,7 +127,6 @@ function Login() {
             className="w-full px-4 py-3 bg-white/10 border border-white/20 text-white placeholder-gray-300 rounded-xl text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 transition-all"
           />
 
-          {/* Password input */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -127,7 +145,6 @@ function Login() {
             </button>
           </div>
 
-          {/* Forgot password */}
           <div className="text-right">
             <span
               onClick={() => navigate("/forgot-password")}
@@ -137,7 +154,6 @@ function Login() {
             </span>
           </div>
 
-          {/* Submit button */}
           <button
             type="submit"
             disabled={loading}
@@ -149,12 +165,9 @@ function Login() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
-
         </form>
-
       </div>
 
-      {/* Register link */}
       <p className="mt-6 text-sm text-gray-300">
         Don't have an account?{" "}
         <span
@@ -164,10 +177,8 @@ function Login() {
           Register
         </span>
       </p>
-
     </div>
   );
 }
-
 
 export default Login;
