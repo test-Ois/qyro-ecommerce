@@ -1,9 +1,14 @@
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 /**
  * PRODUCTION RATE LIMITING
  * Protection against brute force attacks and spam
  * Uses in-memory store (for production, use Redis)
+ *
+ * NOTE: express-rate-limit v8+ requires using ipKeyGenerator()
+ * when referencing req.ip in custom keyGenerator functions.
+ * This prevents IPv6 users from bypassing limits by cycling
+ * through addresses within their allocated subnet.
  */
 
 /**
@@ -49,7 +54,8 @@ exports.otpLimiter = rateLimit({
   message: "Too many OTP requests. Please try again later.",
   keyGenerator: (req, res) => {
     // Rate limit by email, not IP (since multiple users might share IP)
-    return req.body?.email || req.ip;
+    // Falls back to IPv6-safe IP key when email is not provided
+    return req.body?.email || ipKeyGenerator(req);
   },
   standardHeaders: true,
   legacyHeaders: false
@@ -65,7 +71,8 @@ exports.passwordResetLimiter = rateLimit({
   max: 3,
   message: "Too many password reset attempts. Please try again later.",
   keyGenerator: (req, res) => {
-    return req.body?.email || req.ip;
+    // Falls back to IPv6-safe IP key when email is not provided
+    return req.body?.email || ipKeyGenerator(req);
   },
   standardHeaders: true,
   legacyHeaders: false

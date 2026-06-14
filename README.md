@@ -1,4 +1,4 @@
-# 🛍️ Qyro E-commerce
+# 🛍️ Qyro AI-Powered Ecommerce
 
 🚀 A full-stack modern e-commerce platform built using the MERN stack with scalable architecture and premium UI/UX.
 
@@ -130,7 +130,7 @@ npm start
 
 ## 📸 Screenshots
 
-coming...
+
 
 ---
 
@@ -154,8 +154,3 @@ Pull requests are welcome. For major changes, open an issue first.
 📩 Email: [qayoomakhtar72@example.com](mailto:your-email@example.com)
 🔗 GitHub: https://github.com/test-Ois
 
----
-
-## ⭐ Support
-
-If you like this project, give it a ⭐ on GitHub!
