@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Otp = require("../models/Otp");
 const sendEmail = require("../utils/sendEmail");
 const ApiError = require("../utils/apiError");
 const logger = require("../utils/logger");
@@ -34,7 +35,14 @@ exports.register = async ({ name, email, password, role = "user", shopName, shop
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const userRole = ["user", "seller", "admin"].includes(role) ? role : "user";
+
+  // SECURITY: Public register only allows user and seller roles.
+  // admin and super_admin registration is strictly prohibited through this endpoint.
+  if (role === "admin" || role === "super_admin") {
+    throw new ApiError(403, "Admin registration is not permitted through this endpoint.");
+  }
+
+  const userRole = role === "seller" ? "seller" : "user";
 
   if (name.length < 3) {
     throw new ApiError(400, "Name must be at least 3 characters");
@@ -58,7 +66,9 @@ exports.register = async ({ name, email, password, role = "user", shopName, shop
     role: userRole,
     shopName: userRole === "seller" ? shopName || "" : "",
     shopDescription: userRole === "seller" ? shopDescription || "" : "",
-    isApproved: false
+    isApproved: false,
+    // Sellers start pending, users are auto-approved
+    approvalStatus: userRole === "seller" ? "pending" : "approved"
   };
 
   try {
@@ -68,7 +78,7 @@ exports.register = async ({ name, email, password, role = "user", shopName, shop
     try {
       await sendEmail(
         user.email,
-        userRole === "seller" ? "Q-Mart Seller Application Received" : "Welcome to Q-Mart",
+        userRole === "seller" ? "Qyro Seller Application Received" : "Welcome to Qyro",
         userRole === "seller"
           ? `Hello ${user.name}, your seller application is under review. We will notify you once approved.`
           : `Hello ${user.name}, your account has been created successfully.`
@@ -105,6 +115,61 @@ exports.register = async ({ name, email, password, role = "user", shopName, shop
       throw new ApiError(400, "Email already exists");
     }
 
+    throw error;
+  }
+};
+
+// ADMIN REGISTRATION — separate endpoint, requires super_admin approval
+exports.adminRegister = async ({ name, email, password }) => {
+  if (!name || !email || !password) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (name.length < 3) {
+    throw new ApiError(400, "Name must be at least 3 characters");
+  }
+
+  if (!passwordRegex.test(password)) {
+    throw new ApiError(400, "Password must be at least 8 characters and include uppercase, number, and special character.");
+  }
+
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) {
+    logger.logRegistrationFailure(normalizedEmail, "Email already registered");
+    throw new ApiError(400, "Email already exists");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    const user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: "admin",
+      isApproved: false,
+      approvalStatus: "pending"
+    });
+
+    logger.logRegistration(normalizedEmail, "admin");
+
+    return {
+      message: "Admin registration submitted. Await super admin approval before accessing the dashboard.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        approvalStatus: user.approvalStatus,
+        createdAt: user.createdAt
+      }
+    };
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new ApiError(400, "Email already exists");
+    }
     throw error;
   }
 };
@@ -165,12 +230,26 @@ exports.sendOTP = async (email) => {
     throw new ApiError(404, "If an account exists with this email, you will receive an OTP.");
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.otp = otp;
-  user.otpExpire = Date.now() + 5 * 60 * 1000;
-  await user.save();
+  const normalizedEmail = email.trim().toLowerCase();
+  
+  // Rate limit resends: check if OTP document exists
+  let otpDoc = await Otp.findOne({ email: normalizedEmail });
+  if (otpDoc) {
+    if (otpDoc.resends >= 3) {
+      throw new ApiError(429, "Too many OTP resend attempts. Please try again after 15 minutes.");
+    }
+    otpDoc.resends += 1;
+  } else {
+    otpDoc = new Otp({ email: normalizedEmail, otp: "" });
+  }
 
-  await sendEmail(user.email, "Q-Mart Password Reset OTP", `Your OTP for password reset is: ${otp}`);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpDoc.otp = otp;
+  otpDoc.attempts = 0; // Reset verification attempts on new send
+  otpDoc.expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
+  await otpDoc.save();
+
+  await sendEmail(user.email, "Qyro Password Reset OTP", `Your OTP for password reset is: ${otp}`);
 
   return { message: "OTP sent to email" };
 };
@@ -182,23 +261,60 @@ exports.verifyOTP = async ({ email, otp }) => {
     throw new ApiError(400, "Invalid OTP. Please request a new one.");
   }
 
-  if (user.otp !== otp || user.otpExpire < Date.now()) {
-    logger.logAuthError(new Error(`Invalid OTP attempt`), { email, otpMatch: user.otp === otp });
-    throw new ApiError(400, "Invalid OTP. Please request a new one.");
+  const normalizedEmail = email.trim().toLowerCase();
+  const otpDoc = await Otp.findOne({ email: normalizedEmail });
+
+  if (!otpDoc) {
+    throw new ApiError(400, "Invalid or expired OTP. Please request a new one.");
   }
 
-  return { message: "OTP verified" };
+  // Brute force protection: check verification attempts
+  if (otpDoc.attempts >= 5) {
+    await Otp.deleteOne({ _id: otpDoc._id });
+    throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+  }
+
+  if (otpDoc.otp !== otp) {
+    otpDoc.attempts += 1;
+    await otpDoc.save();
+    throw new ApiError(400, "Invalid OTP. Please try again.");
+  }
+
+  // Generate short-lived password reset token (15 mins)
+  const resetToken = jwt.sign(
+    { email: normalizedEmail, purpose: "password-reset" },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+
+  // Successfully verified, remove document
+  await Otp.deleteOne({ _id: otpDoc._id });
+
+  return { message: "OTP verified", resetToken };
 };
 
-exports.resetPassword = async ({ email, password }) => {
+exports.resetPassword = async ({ email, password, token }) => {
+  if (!token) {
+    throw new ApiError(400, "Reset token is required to reset password.");
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.email !== email.trim().toLowerCase() || decoded.purpose !== "password-reset") {
+      throw new ApiError(400, "Invalid password reset token.");
+    }
+  } catch (err) {
+    throw new ApiError(401, "Password reset session has expired or is invalid.");
+  }
+
   const user = await User.findOne({ email });
   if (!user) {
     logger.logAuthError(new Error(`Password reset for non-existent user`), { email });
-    throw new ApiError(400, "If account exists, password will be reset.");
+    throw new ApiError(400, "User account not found.");
   }
 
   if (!passwordRegex.test(password)) {
-    throw new ApiError(400, "Password does not meet security requirements");
+    throw new ApiError(400, "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.");
   }
 
   user.password = await bcrypt.hash(password, 10);

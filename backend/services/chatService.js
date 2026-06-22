@@ -4,7 +4,7 @@ const ApiError = require("../utils/apiError");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const SYSTEM_PROMPT = `You are Qyro customer service AI assistant. Q-Mart is an Indian e-commerce platform.
+const SYSTEM_PROMPT = `You are Qyro customer service AI assistant. Qyro is an Indian e-commerce platform.
 
 You can ONLY help with:
 - Order tracking and status questions

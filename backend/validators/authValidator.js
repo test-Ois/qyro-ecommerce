@@ -7,7 +7,6 @@ const Joi = require("joi");
  */
 
 // Password must be: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-// Example: "Qyro@2024"
 const passwordSchema = Joi.string()
   .min(8)
   .max(128)
@@ -119,13 +118,10 @@ exports.validateVerifyOTP = (data) => {
 exports.validateResetPassword = (data) => {
   const schema = Joi.object({
     email: emailSchema,
-    newPassword: passwordSchema,
-    confirmPassword: Joi.string()
-      .valid(Joi.ref("newPassword"))
-      .required()
-      .messages({
-        "any.only": "Passwords do not match"
-      })
+    password: passwordSchema,
+    token: Joi.string().required().messages({
+      "string.empty": "Reset token is required"
+    })
   });
 
   return schema.validate(data, { abortEarly: false });

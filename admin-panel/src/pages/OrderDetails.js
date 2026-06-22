@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../services/api";
+import { TableSkeleton, Skeleton } from "../components/common/TableSkeleton";
 
 const panelClass =
   "rounded-[28px] border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl";
@@ -14,12 +15,14 @@ const statusStyles = {
   Shipped: "border-blue-400/20 bg-blue-500/15 text-blue-200"
 };
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat("en-IN", {
+const formatCurrency = (value) => {
+  const amount = Number(value) || 0;
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 2
-  }).format(Number(value) || 0);
+  }).format(amount);
+};
 
 const formatDateTime = (value) =>
   new Date(value).toLocaleString("en-IN", {
@@ -67,11 +70,33 @@ function OrderDetails() {
 
   if (loading) {
     return (
-      <div className={`${panelClass} p-6`}>
-        <div className="space-y-3">
-          <div className="h-10 w-48 animate-pulse rounded-xl bg-white/10" />
-          <div className="h-48 w-full animate-pulse rounded-2xl bg-white/10" />
-          <div className="h-48 w-full animate-pulse rounded-2xl bg-white/10" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <Skeleton className="w-24 h-4 mb-2 bg-white/10 animate-pulse" />
+            <Skeleton className="w-56 h-10 mb-2 bg-white/10 animate-pulse" />
+            <Skeleton className="w-96 h-4 bg-white/10 animate-pulse" />
+          </div>
+          <Skeleton className="w-36 h-10 rounded-xl bg-white/10 animate-pulse" />
+        </div>
+        <div className="grid gap-6 xl:grid-cols-[0.7fr,1.3fr]">
+          <div className="space-y-6">
+            <div className={`${panelClass} p-6 space-y-4`}>
+              <Skeleton className="w-32 h-6 mb-3 bg-white/10 animate-pulse" />
+              <Skeleton className="w-24 h-4 bg-white/10 animate-pulse" />
+              <Skeleton className="w-16 h-4 bg-white/10 animate-pulse" />
+            </div>
+            <div className={`${panelClass} p-6 space-y-4`}>
+              <Skeleton className="w-32 h-6 mb-3 bg-white/10 animate-pulse" />
+              <Skeleton className="w-24 h-4 bg-white/10 animate-pulse" />
+              <Skeleton className="w-16 h-4 bg-white/10 animate-pulse" />
+            </div>
+          </div>
+          <div className={`${panelClass} p-6 space-y-4`}>
+            <Skeleton className="w-48 h-8 mb-3 bg-white/10 animate-pulse" />
+            <Skeleton className="w-full h-24 bg-white/10 animate-pulse" />
+            <Skeleton className="w-full h-24 bg-white/10 animate-pulse" />
+          </div>
         </div>
       </div>
     );

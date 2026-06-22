@@ -1,9 +1,14 @@
 const express = require("express");
 const router = express.Router();
+const auth = require("../middlewares/authMiddleware");
 
 const razorpay = require("../config/razorpay");
 
-router.post("/create-order", async (req, res) => {
+router.get("/key", auth, (req, res) => {
+  res.json({ key: process.env.RAZORPAY_KEY });
+});
+
+router.post("/create-order", auth, async (req, res) => {
 
   const { amount } = req.body;
 

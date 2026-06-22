@@ -23,7 +23,7 @@ exports.loginLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
   skip: (req, res) => {
-    // Don't count successful requests (optional)
+    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") return true;
     return res.statusCode < 400;
   }
 });
@@ -39,7 +39,8 @@ exports.registerLimiter = rateLimit({
   max: 3, // Limit each IP to 3 requests per hour
   message: "Too many accounts created from this IP. Please try again after 1 hour.",
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
 });
 
 /**
@@ -58,7 +59,8 @@ exports.otpLimiter = rateLimit({
     return req.body?.email || ipKeyGenerator(req);
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
 });
 
 /**
@@ -75,7 +77,8 @@ exports.passwordResetLimiter = rateLimit({
     return req.body?.email || ipKeyGenerator(req);
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
 });
 
 /**
@@ -88,5 +91,6 @@ exports.refreshTokenLimiter = rateLimit({
   max: 10,
   message: "Too many token refresh attempts. Please try again later.",
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
 });

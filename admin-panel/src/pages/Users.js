@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminButton from "../components/common/AdminButton";
-import { adminApi, getAdminApiErrorMessage } from "../services/api";
+import API, { getAdminApiErrorMessage } from "../services/api";
+import { TableSkeleton, Skeleton } from "../components/common/TableSkeleton";
 
 const panelClass =
   "rounded-[28px] border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl";
@@ -24,8 +25,8 @@ function Users() {
     setError("");
 
     try {
-      const data = await adminApi.getUsers();
-      setUsers(data);
+      const { data } = await API.get("/admin/users");
+      setUsers(Array.isArray(data) ? data : []);
     } catch (requestError) {
       setError(getAdminApiErrorMessage(requestError, "Something went wrong while loading users."));
       setUsers([]);
@@ -52,7 +53,7 @@ function Users() {
     setError("");
 
     try {
-      await adminApi.deleteUser(userId);
+      await API.delete(`/users/${userId}`);
       setUsers((currentUsers) => currentUsers.filter((user) => user._id !== userId));
     } catch (requestError) {
       setError(getAdminApiErrorMessage(requestError, "Something went wrong while deleting the user."));
@@ -66,10 +67,19 @@ function Users() {
     setError("");
 
     try {
-      const updatedUser = await adminApi.toggleUserBlock(userId);
-      setUsers((currentUsers) =>
-        currentUsers.map((user) => (user._id === userId ? updatedUser : user))
-      );
+      const userToToggle = users.find((u) => u._id === userId);
+      const isBlocked = userToToggle?.isBlocked;
+      if (isBlocked) {
+        const { data } = await API.put(`/admin/users/${userId}/unblock`);
+        setUsers((currentUsers) =>
+          currentUsers.map((user) => (user._id === userId ? data.user : user))
+        );
+      } else {
+        await API.put(`/admin/users/${userId}/block`);
+        setUsers((currentUsers) =>
+          currentUsers.map((user) => (user._id === userId ? { ...user, isBlocked: true } : user))
+        );
+      }
     } catch (requestError) {
       setError(getAdminApiErrorMessage(requestError, "Something went wrong while updating the user."));
     } finally {
@@ -106,27 +116,32 @@ function Users() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Total Users</p>
-          <p className="mt-3 text-4xl font-extrabold text-white">{loading ? "..." : summary.total}</p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-white">{summary.total}</p>
+          )}
         </div>
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Admins</p>
-          <p className="mt-3 text-4xl font-extrabold text-indigo-100">{loading ? "..." : summary.admins}</p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-indigo-100">{summary.admins}</p>
+          )}
         </div>
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Blocked</p>
-          <p className="mt-3 text-4xl font-extrabold text-red-200">{loading ? "..." : summary.blocked}</p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-red-200">{summary.blocked}</p>
+          )}
         </div>
       </div>
 
       {loading ? (
-        <div className={`${panelClass} overflow-hidden`}>
-          <div className="space-y-3 p-6">
-            <div className="h-10 w-48 animate-pulse rounded-xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-          </div>
-        </div>
+        <TableSkeleton rows={4} cols={4} />
       ) : users.length === 0 ? (
         <div className={`${panelClass} p-10 text-center`}>
           <h2 className="text-2xl font-bold text-white">No users found</h2>

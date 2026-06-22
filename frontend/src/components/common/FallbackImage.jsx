@@ -39,11 +39,7 @@ export const FallbackImage = ({
   return (
     <>
       {isLoading && (
-        <div className={`animate-pulse bg-gray-200 ${className}`} {...props}>
-          <div className="flex items-center justify-center h-full">
-            <div className="text-gray-400">Loading...</div>
-          </div>
-        </div>
+        <div className={`animate-pulse bg-white/5 border border-white/10 rounded-xl ${className}`} {...props} />
       )}
       <img
         src={src}

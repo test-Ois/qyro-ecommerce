@@ -1,101 +1,65 @@
-import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useContext } from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { AdminAuthContext } from "../context/AuthContext";
 
-const FRONTEND_LOGIN_URL = "http://localhost:3000/login";
-const ADMIN_TRANSFER_KEY = "QYRO_ADMIN_AUTH";
+/**
+ * Admin Panel Protected Route
+ *
+ * Protects all admin dashboard routes.
+ * Redirects to /login (admin panel's own login) if not authenticated.
+ *
+ * @param {string} requiredRole - Optional: "super_admin" to restrict a route further
+ */
+function ProtectedRoute({ requiredRole = null }) {
+  const { admin, authLoading } = useContext(AdminAuthContext);
 
-const clearAdminSession = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
-};
-
-const readStoredUser = () => {
-  const storedUser = localStorage.getItem("user");
-
-  if (!storedUser) {
-    return null;
+  // Show nothing while checking localStorage auth state
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0a0a0f",
+          color: "#fff"
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              border: "3px solid rgba(139,92,246,0.3)",
+              borderTop: "3px solid #8b5cf6",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 16px"
+            }}
+          />
+          <p style={{ color: "#9ca3af", fontSize: 14 }}>Verifying access...</p>
+        </div>
+      </div>
+    );
   }
 
-  try {
-    return JSON.parse(storedUser);
-  } catch (error) {
-    console.error("Admin user parse error:", error);
-    return null;
-  }
-};
-
-const restoreTransferredSession = () => {
-  if (!window.name) {
-    return false;
+  // Not logged in → redirect to admin login
+  if (!admin) {
+    return <Navigate to="/login" replace />;
   }
 
-  try {
-    const payload = JSON.parse(window.name);
-
-    if (payload?.type !== ADMIN_TRANSFER_KEY) {
-      return false;
-    }
-
-    const { token, refreshToken, user } = payload;
-
-    if (!token || !user || user.role !== "admin") {
-      return false;
-    }
-
-    localStorage.setItem("token", token);
-
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
-    } else {
-      localStorage.removeItem("refreshToken");
-    }
-
-    localStorage.setItem("user", JSON.stringify(user));
-    return true;
-  } catch (error) {
-    console.error("Admin auth transfer error:", error);
-    return false;
-  } finally {
-    window.name = "";
+  // Must be approved admin (or super_admin)
+  if (admin.role === "admin" && !admin.isApproved) {
+    return <Navigate to="/pending" replace />;
   }
-};
 
-const ProtectedRoute = () => {
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = readStoredUser();
-
-    if (storedToken && storedUser?.role === "admin") {
-      setIsAuthorized(true);
-      setIsChecking(false);
-      return;
-    }
-
-    const restored = restoreTransferredSession();
-    const restoredToken = localStorage.getItem("token");
-    const restoredUser = readStoredUser();
-
-    if (restored && restoredToken && restoredUser?.role === "admin") {
-      setIsAuthorized(true);
-      setIsChecking(false);
-      return;
-    }
-
-    clearAdminSession();
-    setIsAuthorized(false);
-    setIsChecking(false);
-    window.location.replace(FRONTEND_LOGIN_URL);
-  }, []);
-
-  if (isChecking || !isAuthorized) {
-    return null;
+  // Optional super_admin-only route
+  if (requiredRole === "super_admin" && admin.role !== "super_admin") {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;
-};
+}
 
 export default ProtectedRoute;

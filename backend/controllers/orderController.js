@@ -2,8 +2,8 @@ const orderService = require("../services/orderService");
 const asyncHandler = require("../utils/asyncHandler");
 
 exports.createOrder = asyncHandler(async (req, res) => {
-  const { products, totalPrice } = req.body;
-  const order = await orderService.createOrder(req.user.id, products, totalPrice);
+  const { products, totalPrice, paymentMethod, paymentDetails } = req.body;
+  const order = await orderService.createOrder(req.user.id, products, totalPrice, paymentMethod, paymentDetails);
 
   req.io?.to("admin-room").emit("new-order", {
     message: `New order placed by user`,
@@ -33,18 +33,22 @@ exports.getOrderById = asyncHandler(async (req, res) => {
 });
 
 /* ========== UPDATE ORDER STATUS - Admin ========== */
-exports.updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body;
-  const order = await orderService.updateOrderStatus(req.params.id, status);
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const order = await orderService.updateOrderStatus(req.params.id, status);
 
-  req.io?.to(order.user._id.toString()).emit("order-status-update", {
-    message: `Your order is now ${status}`,
-    orderId: order._id,
-    status
-  });
+    req.io?.to(order.user._id.toString()).emit("order-status-update", {
+      message: `Your order is now ${status}`,
+      orderId: order._id,
+      status
+    });
 
-  res.json(order);
-});
+    res.json(order);
+  } catch (error) {
+    next(error);
+  }
+};
 
 /* ========== CANCEL MY ORDER - USER ========== */
 exports.cancelMyOrder = asyncHandler(async (req, res) => {
@@ -63,3 +67,9 @@ exports.cancelMyOrder = asyncHandler(async (req, res) => {
 
   res.json({ message: "Order cancelled successfully", order });
 });
+
+exports.getSellerOrders = asyncHandler(async (req, res) => {
+  const orders = await orderService.getSellerOrders(req.user.id);
+  res.json(orders);
+});
+

@@ -140,7 +140,43 @@ function CustomerService() {
   };
 
   if (authLoading || historyLoading) {
-    return <p style={{ padding: "20px" }}>Loading...</p>;
+    return (
+      <div style={{
+        maxWidth: "1000px",
+        margin: "0 auto",
+        padding: "20px 24px",
+        height: "calc(100vh - 100px)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ width: "240px", height: "24px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "6px" }} className="animate-pulse" />
+            <div style={{ width: "180px", height: "14px", background: "rgba(255, 255, 255, 0.05)", borderRadius: "4px", marginTop: "8px" }} className="animate-pulse" />
+          </div>
+          <div style={{ width: "100px", height: "32px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "6px" }} className="animate-pulse" />
+        </div>
+        <div style={{
+          flex: 1,
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: "12px",
+          padding: "16px",
+          background: "rgba(255, 255, 255, 0.03)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px"
+        }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ display: "flex", justifyContent: i % 2 === 0 ? "flex-end" : "flex-start", alignItems: "center", gap: "8px" }}>
+              {i % 2 !== 0 && <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.1)" }} className="animate-pulse" />}
+              <div style={{ width: i === 1 ? "50%" : i === 2 ? "35%" : "45%", height: "48px", borderRadius: "18px", background: "rgba(255, 255, 255, 0.05)" }} className="animate-pulse" />
+              {i % 2 === 0 && <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.1)" }} className="animate-pulse" />}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

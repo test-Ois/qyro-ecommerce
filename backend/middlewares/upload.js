@@ -3,7 +3,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 
 // Enhanced Cloudinary storage with better optimization
-const createStorage = (folder = "qmart_products") => new CloudinaryStorage({
+const createStorage = (folder = "qyro_products") => new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder,
@@ -63,7 +63,7 @@ const uploadDynamic = multer({
 
 // Variant image upload (for future use)
 const uploadVariantImages = multer({
-  storage: createStorage("qmart_variants"),
+  storage: createStorage("qyro_variants"),
   fileFilter,
   limits: {
     fileSize: 3 * 1024 * 1024, // 3MB per file for variants

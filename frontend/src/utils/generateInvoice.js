@@ -8,7 +8,7 @@ export const generateInvoice = (order) => {
   // ===== HEADER =====
   doc.setFontSize(22);
   doc.setTextColor(79, 70, 229); // Indigo color
-  doc.text("Q-Mart", 14, 20);
+  doc.text("Qyro", 14, 20);
 
   doc.setFontSize(11);
   doc.setTextColor(100);
@@ -46,13 +46,17 @@ export const generateInvoice = (order) => {
   doc.text("Order Items", 14, 100);
 
   // Build table rows from order products
-  const tableRows = order.products.map((item, index) => [
-    index + 1,
-    item.product?.name || "Product",
-    item.quantity,
-    `Rs. ${item.product?.price || 0}`,
-    `Rs. ${(item.product?.price || 0) * item.quantity}`
-  ]);
+  const tableRows = order.products.map((item, index) => {
+    const name = item.name || item.product?.name || "Product";
+    const price = item.price !== undefined && item.price !== null ? item.price : (item.product?.price || 0);
+    return [
+      index + 1,
+      name,
+      item.quantity,
+      `Rs. ${price}`,
+      `Rs. ${price * item.quantity}`
+    ];
+  });
 
   autoTable(doc, {
     startY: 105,
@@ -83,12 +87,12 @@ export const generateInvoice = (order) => {
   doc.setFontSize(9);
   doc.setTextColor(150);
   doc.text(
-    "Thank you for shopping with Q-Mart!",
+    "Thank you for shopping with Qyro!",
     14,
     finalY + 15
   );
 
   // Save PDF with order ID as filename
-  doc.save(`Q-Mart-Invoice-${order._id}.pdf`);
+  doc.save(`Qyro-Invoice-${order._id}.pdf`);
 
 };

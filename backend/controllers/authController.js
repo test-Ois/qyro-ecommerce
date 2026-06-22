@@ -1,8 +1,15 @@
 const authService = require("../services/authService");
 const asyncHandler = require("../utils/asyncHandler");
 
+/* Public customer/seller registration */
 exports.register = asyncHandler(async (req, res) => {
   const payload = await authService.register(req.validatedData || req.body);
+  res.status(201).json(payload);
+});
+
+/* Admin registration — separate route, no token issued until approved */
+exports.adminRegister = asyncHandler(async (req, res) => {
+  const payload = await authService.adminRegister(req.body);
   res.status(201).json(payload);
 });
 

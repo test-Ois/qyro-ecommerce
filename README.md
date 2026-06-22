@@ -128,12 +128,6 @@ npm start
 
 ---
 
-## 📸 Screenshots
-
-
-
----
-
 ## 🚀 Deployment
 
 * Frontend → Vercel / Netlify

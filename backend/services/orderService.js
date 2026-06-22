@@ -1,10 +1,22 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const ApiError = require("../utils/apiError");
+const crypto = require("crypto");
 
-exports.createOrder = async (userId, products, totalPrice) => {
+exports.createOrder = async (userId, products, totalPrice, paymentMethod = "COD", paymentDetails = null) => {
   if (!products || products.length === 0) {
     throw new ApiError(400, "No products in order");
+  }
+
+  // Verify payment signature if card checkout (Bypassed for dummy online payment)
+  if (paymentMethod === "Card" || paymentMethod === "ONLINE") {
+    /* 
+       DUMMY CHECKOUT INTEGRATION:
+       Replace with real Razorpay implementation in production:
+       - Validate signatures using crypto.createHmac("sha256", process.env.RAZORPAY_SECRET)
+       - Require razorpay_payment_id, razorpay_order_id, and razorpay_signature
+    */
+    // No signature check needed for dummy flow
   }
 
   const formattedProducts = [];
@@ -56,7 +68,26 @@ exports.createOrder = async (userId, products, totalPrice) => {
     formattedProducts.push(finalItem);
   }
 
-  return await Order.create({ user: userId, products: formattedProducts, totalPrice });
+  const isOnline = paymentMethod === "Card" || paymentMethod === "ONLINE";
+  const orderData = {
+    user: userId,
+    products: formattedProducts,
+    totalPrice,
+    paymentMethod: isOnline ? "ONLINE" : paymentMethod,
+    paymentStatus: isOnline ? "PAID (DUMMY)" : "pending",
+    orderStatus: "processing",
+    status: "Pending"
+  };
+
+  if (isOnline && paymentDetails) {
+    orderData.razorpayDetails = {
+      paymentId: paymentDetails.razorpay_payment_id || "dummy_payment_id",
+      orderId: paymentDetails.razorpay_order_id || "dummy_order_id",
+      signature: paymentDetails.razorpay_signature || "dummy_signature"
+    };
+  }
+
+  return await Order.create(orderData);
 };
 
 exports.getMyOrders = async (userId) => {
@@ -139,3 +170,25 @@ exports.cancelMyOrder = async (orderId, userId) => {
 
   return order;
 };
+
+exports.getSellerOrders = async (sellerId) => {
+  const sellerProducts = await Product.find({ seller: sellerId });
+  const productIds = sellerProducts.map(p => p._id.toString());
+
+  const orders = await Order.find({ "products.product": { $in: sellerProducts.map(p => p._id) } })
+    .populate("user", "name email")
+    .populate("products.product")
+    .sort({ createdAt: -1 });
+
+  // For safety, only return products that belong to this seller in the response
+  const filteredOrders = orders.map(order => {
+    const orderObj = order.toObject();
+    orderObj.products = orderObj.products.filter(item =>
+      item.product && productIds.includes(item.product._id.toString())
+    );
+    return orderObj;
+  });
+
+  return filteredOrders;
+};
+

@@ -1,36 +1,61 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
+
+/* ===== PUBLIC pages ===== */
+import Home from "../pages/Home";
+import Products from "../pages/Products";
+import ForgotPassword from "../pages/ForgotPassword";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
+import ResetPassword from "../pages/ResetPassword";
+import VerifyOTP from "../pages/VerifyOTP";
+import CustomerService from "../pages/CustomerService";
+import Success from "../pages/Success";
+
+/* ===== Product feature ===== */
+import ProductPage from "../features/product/pages/ProductPage";
+
+/* ===== Customer-only pages (require login) ===== */
 import AccountDetails from "../pages/AccountDetails";
 import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
-import CustomerService from "../pages/CustomerService";
-import ForgotPassword from "../pages/ForgotPassword";
-import Home from "../pages/Home";
-import Login from "../pages/Login";
 import Orders from "../pages/Orders";
-import Products from "../pages/Products";
-import Register from "../pages/Register";
-import ResetPassword from "../pages/ResetPassword";
+import Wishlist from "../pages/Wishlist";
+
+/* ===== Seller portal pages (require login + approved seller) ===== */
 import SellerDashboard from "../pages/SellerDashboard";
 import SellerPending from "../pages/SellerPending";
-import Success from "../pages/Success";
-import VerifyOTP from "../pages/VerifyOTP";
-import Wishlist from "../pages/Wishlist";
 import AddProduct from "../features/product/pages/AddProduct";
 import EditProduct from "../features/product/pages/EditProduct";
-import ProductPage from "../features/product/pages/ProductPage";
 
 function AppRoutes({ addToCart, cart, totalPrice }) {
   return (
     <Routes>
+
+      {/* ============================================================
+          PUBLIC ROUTES — No authentication required
+          Behaves like Amazon: products visible to all guests
+          ============================================================ */}
       <Route path="/" element={<Home addToCart={addToCart} />} />
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/products" element={<Products />} />
+      <Route path="/product/:id" element={<ProductPage />} />
+      <Route path="/customer-service" element={<CustomerService />} />
+      <Route path="/success" element={<Success />} />
+
+      {/* Auth pages */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/verify-otp" element={<VerifyOTP />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* ============================================================
+          CUSTOMER PROTECTED ROUTES — Authentication required
+          Cart accessible without login (content from localStorage),
+          but Checkout/Orders/Wishlist/Profile require auth
+          ============================================================ */}
+      <Route path="/cart" element={<Cart />} />
 
       <Route
         path="/checkout"
@@ -67,6 +92,7 @@ function AppRoutes({ addToCart, cart, totalPrice }) {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/profile"
         element={
@@ -76,22 +102,38 @@ function AppRoutes({ addToCart, cart, totalPrice }) {
         }
       />
 
-      <Route path="/customer-service" element={<CustomerService />} />
+      {/* ============================================================
+          SELLER PORTAL — /seller/* route group
+          Requires authentication + approved seller role
+          ============================================================ */}
+
+      {/* Public seller routes */}
       <Route path="/seller-pending" element={<SellerPending />} />
 
+      {/* Legacy redirect — keep old seller-dashboard URL working */}
       <Route
         path="/seller-dashboard"
+        element={<Navigate to="/seller/dashboard" replace />}
+      />
+      <Route
+        path="/add-product"
+        element={<Navigate to="/seller/products/add" replace />}
+      />
+
+      {/* Seller protected routes under /seller/* */}
+      <Route
+        path="/seller/dashboard"
         element={
-          <ProtectedRoute requiredRole="seller" requireApprovedSeller>
+          <ProtectedRoute requireAuth requiredRole="seller" requireApprovedSeller>
             <SellerDashboard />
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/add-product"
+        path="/seller/products/add"
         element={
-          <ProtectedRoute requiredRole="seller" requireApprovedSeller>
+          <ProtectedRoute requireAuth requiredRole="seller" requireApprovedSeller>
             <AddProduct />
           </ProtectedRoute>
         }
@@ -100,15 +142,14 @@ function AppRoutes({ addToCart, cart, totalPrice }) {
       <Route
         path="/seller/products/edit/:id"
         element={
-          <ProtectedRoute requiredRole="seller" requireApprovedSeller>
+          <ProtectedRoute requireAuth requiredRole="seller" requireApprovedSeller>
             <EditProduct />
           </ProtectedRoute>
         }
       />
 
-      <Route path="/cart" element={<Cart />} />
-      <Route path="/success" element={<Success />} />
-      <Route path="/product/:id" element={<ProductPage />} />
+      {/* 404 fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

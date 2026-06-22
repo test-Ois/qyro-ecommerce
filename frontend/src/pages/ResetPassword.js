@@ -14,6 +14,7 @@ function ResetPassword() {
   const location = useLocation();
 
   const email = location.state?.email;
+  const resetToken = location.state?.resetToken;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,8 +27,8 @@ function ResetPassword() {
     e.preventDefault();
     setError("");
 
-    if (!email) {
-      alert("Session expired. Please request OTP again.");
+    if (!email || !resetToken) {
+      alert("Session expired or invalid. Please request OTP again.");
       navigate("/forgot-password");
       return;
     }
@@ -49,12 +50,13 @@ function ResetPassword() {
 
     try {
 
+      const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
       const res = await fetch(
-        "http://localhost:5000/api/auth/reset-password",
+        `${apiBase}/auth/reset-password`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, password, token: resetToken })
         }
       );
 

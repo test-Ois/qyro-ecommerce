@@ -12,6 +12,8 @@ import ProductTabs from "../components/ProductTabs";
 import ProductReviews from "../components/ProductReviews";
 import RelatedProducts from "../components/RelatedProducts";
 
+import { ProductDetailSkeleton } from "../../../components/common/Skeleton";
+
 function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -93,10 +95,7 @@ function ProductPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#070014] px-4 py-6 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="h-80 animate-pulse rounded-3xl bg-white/10" />
-          <div className="mt-8 h-6 w-56 animate-pulse rounded bg-white/10" />
-        </div>
+        <ProductDetailSkeleton />
       </div>
     );
   }

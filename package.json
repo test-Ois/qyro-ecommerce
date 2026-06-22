@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently \"npm run backend\" \"npm run frontend\" \"npm run admin\"",
-    "backend": "cd backend && npm start",
-    "frontend": "cd frontend && npm start",
-    "admin": "cd admin-panel && npm start"
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && cross-env BROWSER=none npm start",
+    "admin": "cd admin-panel && cross-env BROWSER=none PORT=3001 npm start",
+    "seed:super-admin": "cd backend && node scripts/createSuperAdmin.js",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../admin-panel && npm install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
   }
 }

@@ -4,6 +4,7 @@ import AdminButton from "../components/common/AdminButton";
 import AdminInput from "../components/common/AdminInput";
 import useProducts from "../hooks/useProducts";
 import { formatPrice, getProductImage } from "../utils/productUtils";
+import { TableSkeleton, Skeleton } from "../components/common/TableSkeleton";
 
 function Products() {
   const navigate = useNavigate();
@@ -54,19 +55,27 @@ function Products() {
       <div className="grid gap-4 md:grid-cols-3">
         <AdminCard className="p-5">
           <p className="text-sm text-gray-300">Total Products</p>
-          <p className="mt-3 text-4xl font-extrabold text-white">{loading ? "..." : products.length}</p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-white">{products.length}</p>
+          )}
         </AdminCard>
         <AdminCard className="p-5">
           <p className="text-sm text-gray-300">Search Results</p>
-          <p className="mt-3 text-4xl font-extrabold text-indigo-100">
-            {loading ? "..." : products.length}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-indigo-100">{products.length}</p>
+          )}
         </AdminCard>
         <AdminCard className="p-5">
           <p className="text-sm text-gray-300">Current Page</p>
-          <p className="mt-3 text-4xl font-extrabold text-pink-100">
-            {loading ? "..." : currentPage}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-pink-100">{currentPage}</p>
+          )}
         </AdminCard>
       </div>
 
@@ -93,14 +102,7 @@ function Products() {
       </AdminCard>
 
       {loading ? (
-        <AdminCard className="overflow-hidden">
-          <div className="space-y-3 p-6">
-            <div className="h-10 w-48 animate-pulse rounded-xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-          </div>
-        </AdminCard>
+        <TableSkeleton rows={4} cols={3} />
       ) : products.length === 0 ? (
         <AdminCard className="p-10 text-center">
           <h2 className="text-2xl font-bold text-white">

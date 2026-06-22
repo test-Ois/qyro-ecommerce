@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const ADMIN_TRANSFER_KEY = "QYRO_ADMIN_AUTH";
-const ADMIN_DASHBOARD_URL = "http://localhost:3001/dashboard";
-const LOGIN_API_URL = "http://localhost:5000/api/auth/login";
+const ADMIN_DASHBOARD_URL = process.env.REACT_APP_ADMIN_DASHBOARD_URL || "http://localhost:3001/dashboard";
+const LOGIN_API_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/auth/login` : "http://localhost:5000/api/auth/login";
+
 
 function Login() {
   const { login } = useContext(AuthContext);
@@ -30,29 +31,23 @@ function Login() {
     login(user, token, refreshToken);
   };
 
-  const redirectByRole = (user, token, refreshToken) => {
-    if (user.role === "admin") {
-      window.name = JSON.stringify({
-        type: ADMIN_TRANSFER_KEY,
-        user,
-        token,
-        refreshToken
-      });
-      window.location.replace(ADMIN_DASHBOARD_URL);
+  const redirectByRole = (user) => {
+    // Admin/super_admin must use the dedicated admin portal
+    if (user.role === "admin" || user.role === "super_admin") {
+      setError("Please use the Admin Portal to sign in as an administrator.");
       return;
     }
 
-    window.name = "";
-
     if (user.role === "seller") {
       if (user.isApproved) {
-        navigate("/seller-dashboard", { replace: true });
+        navigate("/seller/dashboard", { replace: true });
       } else {
         navigate("/seller-pending", { replace: true });
       }
       return;
     }
 
+    // Regular customer
     navigate("/", { replace: true });
   };
 
@@ -86,7 +81,7 @@ function Login() {
       }
 
       persistAuth(data.user, data.token, data.refreshToken);
-      redirectByRole(data.user, data.token, data.refreshToken);
+      redirectByRole(data.user);
     } catch (requestError) {
       console.error("Login error:", requestError);
       setError("Server error. Please try again.");

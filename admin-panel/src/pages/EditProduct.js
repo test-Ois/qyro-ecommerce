@@ -43,6 +43,8 @@ const normalizeVariantImages = (images, fallbackImage) => {
   return fallbackImage ? [fallbackImage] : [];
 };
 
+import { Skeleton } from "../components/common/TableSkeleton";
+
 function EditProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -265,12 +267,31 @@ function EditProduct() {
 
   if (loading) {
     return (
-      <div className={`${panelClass} p-6`}>
-        <div className="space-y-3">
-          <div className="h-10 w-48 animate-pulse rounded-xl bg-white/10" />
-          <div className="h-14 w-full animate-pulse rounded-2xl bg-white/10" />
-          <div className="h-40 w-full animate-pulse rounded-2xl bg-white/10" />
-          <div className="h-14 w-full animate-pulse rounded-2xl bg-white/10" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="w-24 h-4 mb-2 bg-white/10 animate-pulse" />
+          <Skeleton className="w-56 h-10 mb-2 bg-white/10 animate-pulse" />
+          <Skeleton className="w-96 h-4 bg-white/10 animate-pulse" />
+        </div>
+        <div className={`${panelClass} p-6 sm:p-8 space-y-6`}>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Skeleton className="w-16 h-4 bg-white/10 animate-pulse" />
+              <Skeleton className="w-full h-12 bg-white/10 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="w-24 h-4 bg-white/10 animate-pulse" />
+              <Skeleton className="w-full h-12 bg-white/10 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="w-24 h-4 bg-white/10 animate-pulse" />
+            <Skeleton className="w-full h-32 bg-white/10 animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="w-32 h-4 bg-white/10 animate-pulse" />
+            <Skeleton className="w-full h-40 bg-white/10 animate-pulse" />
+          </div>
         </div>
       </div>
     );

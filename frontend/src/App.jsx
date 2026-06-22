@@ -1,9 +1,8 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 
-import Footer from "./components/footer/Footer"; 
-
+import Footer from "./components/footer/Footer";
 import SplashScreen from "./components/SplashScreen";
 import Loader from "./components/Loader";
 
@@ -17,15 +16,17 @@ import Home from "./pages/Home";
 
 import "./App.css";
 
-const socket = io("http://localhost:5000");
+// Socket is NOT created at module level — only connected when needed
+// This prevents crashes when backend is down and stops guest users
+// from triggering WebSocket connections
 
 function AppContent() {
   const { user } = useContext(AuthContext);
   const location = useLocation();
+  const socketRef = useRef(null);
 
-  // 🔥 STAGE CONTROL
+  // 🔥 STAGE CONTROL: splash → loader → skeleton → app
   const [stage, setStage] = useState("splash");
-  // splash → loader → skeleton → app
 
   const hideChatRoutes = [
     "/login",
@@ -35,10 +36,12 @@ function AppContent() {
     "/reset-password",
     "/checkout",
     "/success",
+    "/seller/dashboard",
     "/seller-dashboard",
     "/seller-pending",
     "/customer-service",
-    "/add-product"
+    "/add-product",
+    "/seller/products/add"
   ];
 
   const shouldShowChat =
@@ -50,19 +53,11 @@ function AppContent() {
   );
   const [notifications, setNotifications] = useState([]);
 
-  // ✅ STAGE TIMING (MAIN LOGIC)
+  // ✅ STAGE TIMING
   useEffect(() => {
-    const splashTimer = setTimeout(() => {
-      setStage("loader");
-    }, 2200);
-
-    const loaderTimer = setTimeout(() => {
-      setStage("skeleton");
-    }, 3000);
-
-    const finalTimer = setTimeout(() => {
-      setStage("app");
-    }, 5000);
+    const splashTimer = setTimeout(() => setStage("loader"), 2200);
+    const loaderTimer = setTimeout(() => setStage("skeleton"), 3000);
+    const finalTimer = setTimeout(() => setStage("app"), 5000);
 
     return () => {
       clearTimeout(splashTimer);
@@ -76,32 +71,57 @@ function AppContent() {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  // ✅ SOCKET
+  // ✅ SOCKET — only connect when user is authenticated
+  // Moved from module level to avoid crash when backend is offline
   useEffect(() => {
-    if (user) {
-      socket.emit("join", user.id);
-
-      socket.on("order-status-update", (data) => {
-        setNotifications((prev) => [data, ...prev]);
-
-        if (Notification.permission === "granted") {
-          new Notification("Qyro Order Update", {
-            body: data.message
-          });
-        }
-      });
+    if (!user) {
+      // Disconnect if user logs out
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
     }
 
+    // Connect socket for authenticated users only
+    const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
+
+    socketRef.current = io(SOCKET_URL, {
+      reconnectionAttempts: 3,
+      timeout: 5000,
+      transports: ["websocket"]
+    });
+
+    socketRef.current.emit("join", user.id);
+
+    socketRef.current.on("order-status-update", (data) => {
+      setNotifications((prev) => [data, ...prev]);
+
+      if (Notification.permission === "granted") {
+        new Notification("Qyro Order Update", { body: data.message });
+      }
+    });
+
+    socketRef.current.on("connect_error", () => {
+      // Silently handle connection failures — don't break the UI
+      console.warn("Socket connection failed — real-time updates unavailable");
+    });
+
     return () => {
-      socket.off("order-status-update");
+      if (socketRef.current) {
+        socketRef.current.off("order-status-update");
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [user]);
 
+  // ✅ NOTIFICATION PERMISSION
   useEffect(() => {
-    if (Notification.permission === "default") {
+    if (user && Notification.permission === "default") {
       Notification.requestPermission();
     }
-  }, []);
+  }, [user]);
 
   // ✅ CART FUNCTIONS
   const addToCart = (product) => {
@@ -140,18 +160,18 @@ function AppContent() {
   }
 
   if (stage === "skeleton") {
-  return (
-    <>
-      <Navbar
-        totalItems={totalItems}
-        notifications={notifications}
-        setNotifications={setNotifications}
-      />
-      <Home/>
-      <Footer />   {/* 👈 add this */}
-    </>
-  );
-}
+    return (
+      <>
+        <Navbar
+          totalItems={totalItems}
+          notifications={notifications}
+          setNotifications={setNotifications}
+        />
+        <Home />
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <MainLayout

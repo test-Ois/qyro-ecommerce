@@ -237,7 +237,7 @@ function Navbar({ openCart, notifications, setNotifications }) {
               </svg>
             </div>
           ),
-          path: "/add-product"
+          path: "/seller/products/add"
         }
       ]
     : []),
@@ -253,7 +253,7 @@ function Navbar({ openCart, notifications, setNotifications }) {
 
                 {user.role === "seller" && (
   <button
-    onClick={() => navigate("/seller-dashboard")}
+    onClick={() => navigate("/seller/dashboard")}
     className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10 border-b border-white/10"
   >
     <div className="flex items-center gap-2">
@@ -590,8 +590,8 @@ function Navbar({ openCart, notifications, setNotifications }) {
   { label: "My Orders", path: "/orders" },
   ...(user?.role === "seller"
     ? [
-        { label: "Add Product", path: "/add-product" },
-        { label: "Seller Dashboard", path: "/seller-dashboard" }
+        { label: "Add Product", path: "/seller/products/add" },
+        { label: "Seller Dashboard", path: "/seller/dashboard" }
       ]
     : []),
 ].map((item) => (

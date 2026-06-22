@@ -8,6 +8,10 @@ const cors = require("cors");
 const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
+const helmet = require("helmet");
+const sanitize = require("mongo-sanitize");
+const hpp = require("hpp");
+const rateLimit = require("express-rate-limit");
 const logger = require("./utils/logger");
 
 /* IMPORT DATABASE */
@@ -23,7 +27,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
-const chatRoutes = require("./routes/chatRoutes"); // New
+const chatRoutes = require("./routes/chatRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 
 /* INITIALIZE APP */
@@ -83,16 +87,59 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"]
 };
 
-/* GLOBAL MIDDLEWARE */
+/* GLOBAL SECURITY MIDDLEWARE */
+app.use(helmet()); // Secure HTTP headers
 app.use(cors(corsOptions)); // CORS must be before other middleware
 
+// Prevent MongoDB Operator Injection
+app.use((req, res, next) => {
+  req.body = sanitize(req.body);
+  req.query = sanitize(req.query);
+  req.params = sanitize(req.params);
+  next();
+});
+
+app.use(hpp()); // Prevent HTTP Parameter Pollution
+
+// Rate Limiter: Limit each IP to 150 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 150,
+  message: { message: "Too many requests from this IP, please try again after 15 minutes" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/", limiter); // Apply rate limiting to all api routes
+
+// Secure Response Headers (additional custom config)
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
+  next();
+});
+
 // HTTP Request Logging (Morgan)
-// Log requests in 'combined' format by default, only log errors in production
 const morganFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
 app.use(morgan(morganFormat));
 
-app.use(express.json());
+// Body parsers with payload limits to prevent Denial of Service (DoS)
+app.use(express.json({ limit: "50kb" }));
+app.use(express.urlencoded({ extended: true, limit: "50kb" }));
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+/* HEALTH CHECK ENDPOINT */
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime()
+  });
+});
 
 /* API ROUTES */
 app.use("/api/auth", authRoutes);
@@ -104,7 +151,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/seller", sellerRoutes);
-app.use("/api/chat", chatRoutes); // New
+app.use("/api/chat", chatRoutes);
 app.use("/api/payment", paymentRoutes);
 
 /* GLOBAL ERROR HANDLER */
@@ -125,7 +172,7 @@ io.on("connection", (socket) => {
   });
 });
 
-/* HEALTH CHECK */
+/* HEALTH CHECK ROOT */
 app.get("/", (req, res) => {
   res.send("API Running 🚀");
 });

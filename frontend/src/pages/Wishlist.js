@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import API from "../services/api";
+import { ProductCardSkeleton } from "../components/common/Skeleton";
 
 function Wishlist() {
 
@@ -48,13 +49,25 @@ function Wishlist() {
     }
   };
 
-  if (loading) return <p style={{ padding: "20px" }}>Loading wishlist...</p>;
+  if (loading) {
+    return (
+      <div style={{ padding: "20px" }}>
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-6">
+          <span>My Wishlist</span>
+        </h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "20px" }}>
 
       <h2 className="flex items-center gap-2 text-xl font-semibold">
-        <span>My Wishlist</span>
 
         <svg
           xmlns="http://www.w3.org/2000/svg"

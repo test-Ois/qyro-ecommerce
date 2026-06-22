@@ -240,7 +240,28 @@ function EditProduct() {
   };
 
   if (loading) {
-    return <p style={{ padding: "20px", color: "white" }}>Loading...</p>;
+    return (
+      <div className="min-h-screen bg-[#070014] px-4 py-8 pb-32">
+        <div className="max-w-5xl mx-auto space-y-8 animate-pulse">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="space-y-2">
+              <div className="h-9 w-48 bg-white/10 rounded-xl" />
+              <div className="h-4 w-64 bg-white/5 rounded-lg" />
+            </div>
+            <div className="h-10 w-24 bg-white/10 rounded-xl" />
+          </div>
+          <div className="bg-[#120422] border border-purple-900/40 rounded-2xl p-6 md:p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="h-12 bg-white/5 rounded-xl" />
+              <div className="h-12 bg-white/5 rounded-xl" />
+              <div className="h-28 bg-white/5 rounded-xl md:col-span-2" />
+              <div className="h-12 bg-white/5 rounded-xl" />
+              <div className="h-12 bg-white/5 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

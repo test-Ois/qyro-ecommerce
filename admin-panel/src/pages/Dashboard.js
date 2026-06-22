@@ -139,7 +139,8 @@ function Dashboard() {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
 
-    window.location.replace("http://localhost:3000/login");
+    const frontendUrl = process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000";
+    window.location.replace(`${frontendUrl}/login`);
   };
 
   return (

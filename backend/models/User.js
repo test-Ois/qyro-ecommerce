@@ -24,13 +24,21 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ["user", "seller", "admin"],
+    enum: ["user", "seller", "admin", "super_admin"],
     default: "user"
   },
 
   isBlocked: {
     type: Boolean,
     default: false
+  },
+
+  // Granular approval status for sellers and admins
+  // users: always "approved", sellers/admins: start "pending"
+  approvalStatus: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "approved" // overridden on register for seller/admin
   },
 
   resetPasswordToken: {

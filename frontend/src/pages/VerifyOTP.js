@@ -48,8 +48,9 @@ function VerifyOTP() {
     }
 
     try {
+      const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
       const res = await fetch(
-        "http://localhost:5000/api/auth/verify-otp",
+        `${apiBase}/auth/verify-otp`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -60,7 +61,7 @@ function VerifyOTP() {
       const data = await res.json();
 
       if (res.ok) {
-        navigate("/reset-password", { state: { email } });
+        navigate("/reset-password", { state: { email, resetToken: data.resetToken } });
       } else {
         alert(data.message);
       }
@@ -71,8 +72,9 @@ function VerifyOTP() {
 
   const resendOtp = async () => {
     try {
+      const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
       await fetch(
-        "http://localhost:5000/api/auth/send-otp",
+        `${apiBase}/auth/send-otp`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../services/api";
+import { TableSkeleton, Skeleton } from "../components/common/TableSkeleton";
 
 const panelClass =
   "rounded-[28px] border border-white/20 bg-white/10 shadow-xl backdrop-blur-xl";
@@ -86,33 +87,38 @@ function Sellers() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Total Sellers</p>
-          <p className="mt-3 text-4xl font-extrabold text-white">
-            {loading ? "..." : summary.total}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-white">
+              {summary.total}
+            </p>
+          )}
         </div>
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Approved</p>
-          <p className="mt-3 text-4xl font-extrabold text-emerald-200">
-            {loading ? "..." : summary.approved}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-emerald-200">
+              {summary.approved}
+            </p>
+          )}
         </div>
         <div className={`${panelClass} p-5`}>
           <p className="text-sm text-gray-300">Pending</p>
-          <p className="mt-3 text-4xl font-extrabold text-yellow-200">
-            {loading ? "..." : summary.pending}
-          </p>
+          {loading ? (
+            <Skeleton className="mt-3 h-10 w-20 bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-3 text-4xl font-extrabold text-yellow-200">
+              {summary.pending}
+            </p>
+          )}
         </div>
       </div>
 
       {loading ? (
-        <div className={`${panelClass} overflow-hidden`}>
-          <div className="space-y-3 p-6">
-            <div className="h-10 w-48 animate-pulse rounded-xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-            <div className="h-16 w-full animate-pulse rounded-2xl bg-white/10" />
-          </div>
-        </div>
+        <TableSkeleton rows={4} cols={4} />
       ) : sellers.length === 0 ? (
         <div className={`${panelClass} p-10 text-center`}>
           <h2 className="text-2xl font-bold text-white">No sellers found</h2>

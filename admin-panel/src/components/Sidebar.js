@@ -1,31 +1,52 @@
-import { NavLink } from "react-router-dom";
+import { useContext } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { AdminAuthContext } from "../context/AuthContext";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", short: "DB" },
-  { to: "/products", label: "Products", short: "PR" },
-  { to: "/orders", label: "Orders", short: "OR" },
-  { to: "/users", label: "Users", short: "US" },
-  { to: "/sellers", label: "Sellers", short: "SE" }
+  { to: "/dashboard", label: "Dashboard", short: "DB", desc: "Overview and quick actions" },
+  { to: "/products", label: "Products", short: "PR", desc: "Create and manage catalog" },
+  { to: "/orders", label: "Orders", short: "OR", desc: "Track fulfilment status" },
+  { to: "/users", label: "Users", short: "US", desc: "View and control accounts" },
+  { to: "/sellers", label: "Sellers", short: "SE", desc: "Approve pending sellers" }
+];
+
+const superAdminItems = [
+  { to: "/admin-users", label: "Admin Users", short: "SA", desc: "Manage admin accounts" }
 ];
 
 function Sidebar() {
+  const { admin, logout } = useContext(AdminAuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
+  const allNavItems = [
+    ...navItems,
+    ...(admin?.role === "super_admin" ? superAdminItems : [])
+  ];
+
   return (
     <aside className="w-full shrink-0 p-4 sm:p-6 lg:w-72 lg:pr-0 xl:w-80">
-      <div className="h-full rounded-[28px] border border-white/10 bg-black/20 p-6 shadow-xl backdrop-blur-xl lg:sticky lg:top-6">
+      <div className="h-full rounded-[28px] border border-white/10 bg-black/20 p-6 shadow-xl backdrop-blur-xl lg:sticky lg:top-6 flex flex-col">
         <div className="border-b border-white/10 pb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-pink-300">
-            Admin Panel
+            {admin?.role === "super_admin" ? "Super Admin" : "Admin Panel"}
           </p>
           <h1 className="mt-3 text-3xl font-extrabold text-gradient-brand">
             Qyro
           </h1>
-          <p className="mt-3 text-sm leading-6 text-gray-300">
-            Manage products, orders, and sellers with the same glass UI as the storefront.
-          </p>
+          {admin && (
+            <p className="mt-2 text-sm text-gray-400 truncate">
+              {admin.name} · {admin.email}
+            </p>
+          )}
         </div>
 
-        <nav className="mt-6 space-y-3">
-          {navItems.map((item) => (
+        <nav className="mt-6 space-y-3 flex-1">
+          {allNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -48,16 +69,9 @@ function Sidebar() {
                   >
                     {item.short}
                   </span>
-
                   <div>
                     <p className="text-sm font-semibold">{item.label}</p>
-                    <p className="text-xs text-gray-300">
-                      {item.label === "Dashboard" && "Overview and quick actions"}
-                      {item.label === "Products" && "Create and manage catalog"}
-                      {item.label === "Orders" && "Track fulfilment status"}
-                      {item.label === "Users" && "View and control accounts"}
-                      {item.label === "Sellers" && "Approve pending sellers"}
-                    </p>
+                    <p className="text-xs text-gray-300">{item.desc}</p>
                   </div>
                 </>
               )}
@@ -65,13 +79,17 @@ function Sidebar() {
           ))}
         </nav>
 
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200">
-            Theme
-          </p>
-          <p className="mt-2 text-sm leading-6 text-gray-300">
-            Gradient background, frosted cards, and neon accents now match the frontend design language.
-          </p>
+        {/* Logout button */}
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-300"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-xs font-bold">
+              ↩
+            </span>
+            Sign Out
+          </button>
         </div>
       </div>
     </aside>

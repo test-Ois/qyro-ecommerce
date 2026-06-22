@@ -1,20 +1,32 @@
 import axios from "axios";
 
+const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 const API = axios.create({
-  baseURL: "http://localhost:5000/api"
+  baseURL: apiBase
 });
 
 let isRefreshing = false;
 let refreshQueue = [];
 
-const isAdminPanel = () =>
-  typeof window !== "undefined" && window.location.port === "3001";
+// Routes that are PUBLIC — never redirect to login on 401 from these
+const PUBLIC_ROUTES = [
+  "/products",
+  "/auth/login",
+  "/auth/register",
+  "/auth/admin-register",
+  "/auth/send-otp",
+  "/auth/verify-otp",
+  "/auth/reset-password",
+  "/auth/refresh-token"
+];
+
+const isPublicRoute = (url) => {
+  if (!url) return true;
+  return PUBLIC_ROUTES.some((route) => url.includes(route));
+};
 
 const clearFrontendAuth = () => {
-  if (typeof window === "undefined" || isAdminPanel()) {
-    return;
-  }
-
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
@@ -22,13 +34,15 @@ const clearFrontendAuth = () => {
 };
 
 const redirectToLogin = () => {
-  if (typeof window === "undefined" || isAdminPanel()) {
+  if (
+    typeof window === "undefined" ||
+    window.location.pathname === "/login" ||
+    window.location.pathname.startsWith("/seller/login") ||
+    window.location.pathname.startsWith("/admin")
+  ) {
     return;
   }
-
-  if (window.location.pathname !== "/login") {
-    window.location.replace("/login");
-  }
+  window.location.replace("/login");
 };
 
 const flushRefreshQueue = (error, token = null) => {
@@ -37,18 +51,13 @@ const flushRefreshQueue = (error, token = null) => {
       reject(error);
       return;
     }
-
     resolve(token);
   });
-
   refreshQueue = [];
 };
 
+// Request interceptor — attach token if available
 API.interceptors.request.use((config) => {
-  if (isAdminPanel()) {
-    return config;
-  }
-
   const token = localStorage.getItem("token");
 
   if (token) {
@@ -62,17 +71,22 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor — handle 401 with token refresh
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Skip retry conditions:
+    // 1. No original request config
+    // 2. Already retried
+    // 3. Not a 401
+    // 4. Public route (no auth needed, don't redirect guest users)
     if (
-      isAdminPanel() ||
       !originalRequest ||
       originalRequest._retry ||
       error.response?.status !== 401 ||
-      originalRequest.url?.includes("/auth/login") ||
+      isPublicRoute(originalRequest.url) ||
       originalRequest.url?.includes("/auth/refresh-token")
     ) {
       return Promise.reject(error);
@@ -81,8 +95,12 @@ API.interceptors.response.use(
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
-      clearFrontendAuth();
-      redirectToLogin();
+      // Only clear auth and redirect if user was supposed to be logged in
+      const token = localStorage.getItem("token");
+      if (token) {
+        clearFrontendAuth();
+        redirectToLogin();
+      }
       return Promise.reject(error);
     }
 
@@ -100,21 +118,12 @@ API.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/refresh-token",
-        { refreshToken }
-      );
+      const response = await axios.post(`${apiBase}/auth/refresh-token`, { refreshToken });
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
 
       localStorage.setItem("token", newToken);
-
-      if (newRefreshToken) {
-        localStorage.setItem("refreshToken", newRefreshToken);
-      }
-
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
-      }
+      if (newRefreshToken) localStorage.setItem("refreshToken", newRefreshToken);
+      if (user) localStorage.setItem("user", JSON.stringify(user));
 
       API.defaults.headers.common.Authorization = `Bearer ${newToken}`;
       flushRefreshQueue(null, newToken);

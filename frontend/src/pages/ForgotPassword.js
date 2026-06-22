@@ -10,8 +10,9 @@ function ForgotPassword(){
 
     e.preventDefault();
 
+    const apiBase = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
     const res = await fetch(
-      "http://localhost:5000/api/auth/send-otp",
+      `${apiBase}/auth/send-otp`,
       {
         method:"POST",
         headers:{

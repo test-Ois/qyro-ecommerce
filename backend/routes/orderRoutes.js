@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   createOrder,
   getMyOrders,
+  getSellerOrders,
   getAllOrders,
   getOrderById,
   updateOrderStatus,
@@ -21,7 +22,7 @@ router.get("/my", auth, getMyOrders);
 router.put("/:id/cancel", auth, ownerMiddleware("order"), cancelMyOrder);
 
 /* ================= SELLER ================= */
-router.get("/seller", auth, sellerMiddleware, getMyOrders); // Orders for seller's products
+router.get("/seller", auth, sellerMiddleware, getSellerOrders); // Orders for seller's products
 
 /* ================= ADMIN ================= */
 router.get("/", auth, roleMiddleware("admin"), getAllOrders);
